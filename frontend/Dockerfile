@@ -12,6 +12,10 @@ RUN npm ci
 # Copiar el código fuente
 COPY . .
 
+# Variables de entorno para el build (Vite las necesita en tiempo de build)
+ARG VITE_API_KEY
+ENV VITE_API_KEY=$VITE_API_KEY
+
 # Build de producción
 RUN npm run build
 
