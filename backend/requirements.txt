@@ -9,3 +9,6 @@ supabase==2.27.2
 langfuse==3.12.1
 python-dotenv==1.0.1
 # Force rebuild Tue Jan 27 11:05:16 CST 2026
+# BuildID: 1769533611
+ 
+# ForcedRebuildId 1769533616

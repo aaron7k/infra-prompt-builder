@@ -57,8 +57,6 @@ langfuse_handler = CallbackHandler(
 )
 
 @app.get("/")
-@app.get("/")
-async def root():
     return {
         "status": "ok", 
         "message": "Prompt Builder API is running",
