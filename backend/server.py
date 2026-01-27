@@ -266,9 +266,14 @@ async def generate_prompt(
         # 3. Forzar el envío de la traza ANTES de responder
         if local_handler:
             try:
-                print("DEBUG: Flushing Langfuse trace explicitly...")
-                local_handler.flush()
-                print("DEBUG: Flush completed")
+                print(f"DEBUG: Internal Langfuse client found: {'Yes' if hasattr(local_handler, 'client') else 'No'}")
+                print("DEBUG: Flushing Langfuse via internal client...")
+                if hasattr(local_handler, 'client'):
+                    local_handler.client.flush()
+                    print("DEBUG: Explicit flush successful via .client.flush()")
+                else:
+                    # Fallback por si acaso
+                    print("DEBUG: WARNING - CallbackHandler has no .client attribute, cannot flush")
             except Exception as fe:
                 print(f"DEBUG: Langfuse flush failed: {fe}")
         
