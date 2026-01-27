@@ -6,7 +6,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "8888:8888"
     environment:
       - SUPABASE_URL
       - SUPABASE_KEY
@@ -18,7 +18,7 @@ services:
     networks:
       - prompt-builder-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8888/"]
       interval: 30s
       timeout: 30s
       retries: 5
@@ -36,7 +36,7 @@ services:
     networks:
       - prompt-builder-network
     environment:
-      - VITE_API_URL=http://backend:8000
+      - VITE_API_URL=http://backend:8888
 
 networks:
   prompt-builder-network:
