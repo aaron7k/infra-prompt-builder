@@ -137,7 +137,9 @@ async def test_trace():
         
         if auth_ok:
             print("DEBUG: Auth check successful, sending test event...")
-            lf_client.event(name="test-connection", metadata={"source": "api-diagnostic"})
+            # En v3.11.2, es mejor crear un trace y luego un event para asegurar compatibilidad
+            test_trace = lf_client.trace(name="Diagnostic Test")
+            test_trace.event(name="test-connection", metadata={"source": "api-diagnostic"})
             lf_client.flush()
             return {
                 "status": "success",
@@ -189,11 +191,24 @@ async def generate_prompt(
             "messages": []
         }
         
+        # Metadata enriquecida para Langfuse (se captura automáticamente por el CallbackHandler)
+        langfuse_metadata = {
+            "location_id": location_id,
+            "assistant_role": assistant_role,
+            "agency_name": agency_name,
+            "process": "prompt_generation_v1"
+        }
+        
         # Ejecutar el agente con Langfuse Tracing (si está disponible)
         callbacks = [langfuse_handler] if langfuse_handler else []
-        config = {"callbacks": callbacks, "run_name": f"Prompt Generation - {location_id}"}
+        config = {
+            "callbacks": callbacks, 
+            "run_name": f"Prompt Generation",
+            "metadata": langfuse_metadata,
+            "tags": [location_id, agency_name]
+        }
         
-        print(f"DEBUG: Invoking agent for location {location_id}...")
+        print(f"DEBUG: Invoking agent for location {location_id} with metadata...")
         result = agent.invoke(initial_state, config=config)
         print("DEBUG: Agent invocation successful")
         
