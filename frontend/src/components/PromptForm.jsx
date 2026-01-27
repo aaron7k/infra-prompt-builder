@@ -3,7 +3,7 @@ import { Send, Plus, X, Upload, FileText, AlertCircle, CheckCircle2, Copy, Downl
 import axios from 'axios';
 
 const PromptForm = ({ locationId }) => {
-  // Initialize state directly from localStorage to avoid persistence race conditions
+  // Initialize state directly from localStorage
   const [formData, setFormData] = useState(() => {
     const saved = localStorage.getItem('promptBuilder_formData');
     return saved ? JSON.parse(saved) : {
@@ -19,7 +19,6 @@ const PromptForm = ({ locationId }) => {
 
   const [generatedPrompt, setGeneratedPrompt] = useState(() => {
     const saved = localStorage.getItem('promptBuilder_generatedPrompt');
-    // Ensure we don't load the string "undefined"
     return (saved && saved !== 'undefined') ? saved : '';
   });
 
@@ -28,21 +27,35 @@ const PromptForm = ({ locationId }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
-  const [contextMode, setContextMode] = useState('text'); // 'text' or 'file'
+  const [contextMode, setContextMode] = useState('text');
   const [showModal, setShowModal] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Still save to localStorage on change
+  // Cross-tab synchronization
   useEffect(() => {
-    if (formData) {
-      localStorage.setItem('promptBuilder_formData', JSON.stringify(formData));
-    }
+    const handleStorageChange = (e) => {
+      if (e.key === 'promptBuilder_formData' && e.newValue) {
+        try {
+          setFormData(JSON.parse(e.newValue));
+        } catch (err) {
+          console.error("Storage parse error", err);
+        }
+      }
+      if (e.key === 'promptBuilder_generatedPrompt' && e.newValue) {
+        setGeneratedPrompt(e.newValue === 'undefined' ? '' : e.newValue);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // persistence
+  useEffect(() => {
+    localStorage.setItem('promptBuilder_formData', JSON.stringify(formData));
   }, [formData]);
 
   useEffect(() => {
-    if (generatedPrompt !== undefined) {
-      localStorage.setItem('promptBuilder_generatedPrompt', generatedPrompt);
-    }
+    localStorage.setItem('promptBuilder_generatedPrompt', generatedPrompt);
   }, [generatedPrompt]);
 
   const handleAddTask = () => {
@@ -119,15 +132,15 @@ const PromptForm = ({ locationId }) => {
 
       const response = await axios.post('/api/generate-prompt', formDataToSend);
 
-      // FIX: Use generated_prompt instead of prompt
-      const result = response.data.generated_prompt;
+      // Defensively extract prompt with multiple checks to avoid "undefined"
+      const result = response.data.generated_prompt || response.data.prompt || (response.data.messages ? response.data.messages[0] : '');
+
       if (!result) {
-        console.error("Backend response missing generated_prompt:", response.data);
-        throw new Error("El backend no devolvió el prompt esperado.");
+        throw new Error("El AI no devolvió contenido. Intenta de nuevo.");
       }
 
       setGeneratedPrompt(result);
-      setShowModal(true); // Open modal on success
+      setShowModal(true);
 
       if (locationId) {
         try {
@@ -145,14 +158,14 @@ const PromptForm = ({ locationId }) => {
             generated_prompt: result
           });
         } catch (dbErr) {
-          console.warn("Could not save to Supabase history, but prompt was generated:", dbErr);
+          console.warn("DB Save error", dbErr);
         }
       }
 
       setSuccess(true);
     } catch (err) {
       console.error(err);
-      setError(err.message || 'Error al generar el prompt. Verifica que el backend esté corriendo.');
+      setError(err.message || 'Error al generar el prompt.');
     } finally {
       setLoading(false);
     }
@@ -160,7 +173,6 @@ const PromptForm = ({ locationId }) => {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(generatedPrompt);
-    // Use a toast instead of alert for better UX if possible, but keeping it simple for now
     setSuccess(true);
     setTimeout(() => setSuccess(false), 2000);
   };
@@ -177,7 +189,6 @@ const PromptForm = ({ locationId }) => {
   return (
     <div className="card">
       <form onSubmit={handleSubmit}>
-        {/* Row 1: Rol y Agencia */}
         <div className="form-grid">
           <div className="input-group">
             <label className="label">Rol del Asistente *</label>
@@ -204,7 +215,6 @@ const PromptForm = ({ locationId }) => {
           </div>
         </div>
 
-        {/* Row 2: Tareas y Few Shot */}
         <div className="form-grid">
           <div className="input-group">
             <label className="label">Tareas (¿Qué hará el asistente?) *</label>
@@ -263,7 +273,6 @@ const PromptForm = ({ locationId }) => {
           </div>
         </div>
 
-        {/* Row 3: Restricciones y Lógica de Herramientas */}
         <div className="form-grid">
           <div className="input-group">
             <label className="label">Restricciones de Formato</label>
@@ -272,7 +281,6 @@ const PromptForm = ({ locationId }) => {
               placeholder="Ej: Máximo 500 palabras, no usar jerga técnica..."
               value={formData.formatRestrictions}
               onChange={(e) => setFormData({ ...formData, formatRestrictions: e.target.value })}
-              style={{ minHeight: '100px' }}
             />
           </div>
 
@@ -283,16 +291,14 @@ const PromptForm = ({ locationId }) => {
               placeholder="Ej: Consultar base de datos de propiedades, enviar emails..."
               value={formData.toolLogic}
               onChange={(e) => setFormData({ ...formData, toolLogic: e.target.value })}
-              style={{ minHeight: '100px' }}
             />
           </div>
         </div>
 
-        {/* Contexto */}
         <div className="input-group">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
             <label className="label" style={{ marginBottom: 0 }}>Contexto del Negocio *</label>
-            <div className="toggle-group" style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '0.25rem', borderRadius: '8px' }}>
+            <div className="toggle-group" style={{ display: 'flex', gap: '0.4rem', background: 'rgba(0,0,0,0.2)', padding: '0.2rem', borderRadius: '8px' }}>
               <button
                 type="button"
                 className={`toggle-btn ${contextMode === 'text' ? 'active' : ''}`}
@@ -301,16 +307,13 @@ const PromptForm = ({ locationId }) => {
                   background: contextMode === 'text' ? 'var(--accent)' : 'transparent',
                   border: 'none',
                   color: 'white',
-                  fontSize: '0.75rem',
-                  padding: '0.25rem 0.75rem',
+                  fontSize: '0.7rem',
+                  padding: '0.2rem 0.6rem',
                   borderRadius: '6px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem'
+                  cursor: 'pointer'
                 }}
               >
-                <FileText size={14} /> Texto
+                <FileText size={12} /> Texto
               </button>
               <button
                 type="button"
@@ -320,16 +323,13 @@ const PromptForm = ({ locationId }) => {
                   background: contextMode === 'file' ? 'var(--accent)' : 'transparent',
                   border: 'none',
                   color: 'white',
-                  fontSize: '0.75rem',
-                  padding: '0.25rem 0.75rem',
+                  fontSize: '0.7rem',
+                  padding: '0.2rem 0.6rem',
                   borderRadius: '6px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem'
+                  cursor: 'pointer'
                 }}
               >
-                <Upload size={14} /> Archivo
+                <Upload size={12} /> Archivo
               </button>
             </div>
           </div>
@@ -341,7 +341,7 @@ const PromptForm = ({ locationId }) => {
               value={formData.context}
               onChange={(e) => setFormData({ ...formData, context: e.target.value })}
               required={contextMode === 'text'}
-              style={{ minHeight: '150px' }}
+              style={{ minHeight: '120px' }}
             />
           ) : (
             <div
@@ -349,36 +349,24 @@ const PromptForm = ({ locationId }) => {
               style={{
                 border: '2px dashed var(--border)',
                 borderRadius: '8px',
-                padding: '2rem',
+                padding: '1.5rem',
                 textAlign: 'center',
                 cursor: 'pointer',
-                transition: 'var(--transition)',
                 background: 'rgba(255,255,255,0.02)'
               }}
               onClick={() => fileInputRef.current.click()}
             >
-              <input
-                type="file"
-                ref={fileInputRef}
-                style={{ display: 'none' }}
-                onChange={handleFileUpload}
-                accept=".txt,.md"
-              />
-              <Upload size={32} style={{ color: 'var(--text-dim)', marginBottom: '1rem' }} />
-              <p className="text-dim">Haz clic para subir un archivo o arrástralo aquí</p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.5rem' }}>
-                Formatos: .txt, .md
-              </p>
+              <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileUpload} accept=".txt,.md" />
+              <Upload size={24} style={{ color: 'var(--text-dim)', marginBottom: '0.5rem' }} />
+              <p className="text-dim" style={{ fontSize: '0.8rem' }}>Sube un archivo .txt o .md</p>
               {formData.context && contextMode === 'file' && (
-                <div style={{ marginTop: '1rem', color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                  <CheckCircle2 size={16} /> Archivo cargado correctamente
-                </div>
+                <div style={{ marginTop: '0.5rem', color: 'var(--success)', fontSize: '0.8rem' }}>✓ Archivo listo</div>
               )}
             </div>
           )}
         </div>
 
-        <button type="submit" className="button" style={{ width: '100%', marginTop: '1rem' }} disabled={loading}>
+        <button type="submit" className="button" style={{ width: '100%', marginTop: '1.5rem', padding: '1rem' }} disabled={loading}>
           {loading ? 'Generando...' : (
             <>
               <Send size={20} />
@@ -389,18 +377,18 @@ const PromptForm = ({ locationId }) => {
       </form>
 
       {error && (
-        <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: 'rgba(255, 77, 77, 0.1)', color: 'var(--danger)', borderRadius: '8px', border: '1px solid var(--danger)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <AlertCircle size={20} />
+        <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: 'rgba(255, 77, 77, 0.1)', color: 'var(--danger)', borderRadius: '8px', border: '1px solid var(--danger)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+          <AlertCircle size={18} />
           {error}
         </div>
       )}
 
-      {/* Modal for Results */}
+      {/* MODAL OVERLAY - FIXED Z-INDEX */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 style={{ color: 'var(--accent)', margin: 0 }}>Prompt Maestro Generado</h2>
+              <h2 style={{ color: 'var(--accent)', margin: 0, fontSize: '1.25rem' }}>🚀 Prompt Maestro Generado</h2>
               <button className="modal-close" onClick={() => setShowModal(false)}>
                 <XCircle size={24} />
               </button>
@@ -413,11 +401,11 @@ const PromptForm = ({ locationId }) => {
             </div>
 
             <div className="modal-footer">
-              <button className="button" style={{ background: 'var(--secondary-bg)', border: '1px solid var(--border)' }} onClick={downloadPrompt}>
-                <Download size={18} /> Descargar .txt
+              <button className="button" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', fontSize: '0.85rem' }} onClick={downloadPrompt}>
+                <Download size={16} /> Descargar .txt
               </button>
-              <button className="button" onClick={copyToClipboard}>
-                {success ? <CheckCircle2 size={18} /> : <Copy size={18} />}
+              <button className="button" onClick={copyToClipboard} style={{ fontSize: '0.85rem' }}>
+                {success ? <CheckCircle2 size={16} /> : <Copy size={16} />}
                 {success ? '¡Copiado!' : 'Copiar al Portapapeles'}
               </button>
             </div>
@@ -425,15 +413,16 @@ const PromptForm = ({ locationId }) => {
         </div>
       )}
 
-      {/* Legacy result box for persistence visibility, hidden but present */}
+      {/* VIEW AGAIN BUTTON */}
       {generatedPrompt && !showModal && (
-        <div style={{ marginTop: '2rem', opacity: 0.6 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h4 className="text-dim">Último resultado guardado:</h4>
-            <button className="button" onClick={() => setShowModal(true)} style={{ fontSize: '0.75rem', padding: '0.4rem 0.8rem' }}>
-              Ver de nuevo
-            </button>
-          </div>
+        <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+          <button
+            className="button"
+            onClick={() => setShowModal(true)}
+            style={{ background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: '0.75rem' }}
+          >
+            Ver Último Prompt
+          </button>
         </div>
       )}
     </div>
