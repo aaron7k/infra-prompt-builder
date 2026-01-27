@@ -7,7 +7,7 @@ from typing import List, Optional
 import uvicorn
 from dotenv import load_dotenv
 from supabase import create_client, Client
-from langfuse.langchain import CallbackHandler
+from langfuse.callback import CallbackHandler
 
 # Cargar variables de entorno
 load_dotenv()
@@ -109,6 +109,27 @@ async def root():
             "LANGFUSE_HOST": os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
         }
     }
+
+@app.get("/api/test-trace")
+async def test_trace():
+    if not langfuse_handler:
+        return {"status": "error", "message": "Langfuse handler not initialized"}
+    
+    try:
+        # Intentar una traza manual simple
+        print("DEBUG: Sending test trace to Langfuse...")
+        # Note: CallbackHandler might not have a direct 'trace' method like the core SDK, 
+        # but we can check connectivity via the underlying client if needed.
+        # However, just checking if flush doesn't crash is a start.
+        langfuse_handler.flush()
+        return {
+            "status": "success", 
+            "message": "Manual flush triggered. Check Langfuse dashboard.",
+            "host": os.getenv("LANGFUSE_HOST")
+        }
+    except Exception as e:
+        print(f"DEBUG: Trace test failed: {e}")
+        return {"status": "error", "message": str(e)}
 
 @app.post("/api/generate-prompt")
 async def generate_prompt(
