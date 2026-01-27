@@ -14,6 +14,10 @@ load_dotenv()
 # Añadir src al path para imports relativos
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
+print("--- SERVER STARTING VERSION 2.0 (CACHE BREAKER) ---")
+print(f"DEBUG: SUPABASE_URL is {'SET' if os.getenv('SUPABASE_URL') else 'MISSING'}")
+print(f"DEBUG: SUPABASE_KEY is {'SET' if os.getenv('SUPABASE_KEY') else 'MISSING'}")
+
 from agents.prompt_builder.agent import agent
 from agents.prompt_builder.state import State
 
