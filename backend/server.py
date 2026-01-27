@@ -226,30 +226,28 @@ async def generate_prompt(
             "messages": []
         }
         
-        # Metadata enriquecida para Langfuse
+        # 1. Metadata enriquecida para Langfuse (Langchain Integration)
+        # Langfuse v3+ picks up these specific keys from metadata
         langfuse_metadata = {
+            "langfuse_user_id": location_id,
+            "langfuse_trace_name": agency_name,
             "assistant_role": assistant_role,
             "agency_name": agency_name,
             "tasks": tasks,
             "process": "prompt_builder_v1"
         }
         
-        # 1. Crear un handler específico para esta petición para poder setear userId y traceName
-        # Esto asegura que la traza se llame como la agencia y el usuario sea la location_id
+        print(f"DEBUG: Initializing Langfuse Handler for {agency_name}...")
         local_handler = None
-        pk = os.getenv("LANGFUSE_PUBLIC_KEY")
-        sk = os.getenv("LANGFUSE_SECRET_KEY")
-        host = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
-        
-        if pk and sk:
-            try:
-                # En v3.11.2, CallbackHandler toma user_id but NOT trace_name in constructor
-                # Las llaves y el host los toma automáticamente del entorno
-                local_handler = CallbackHandler(
-                    user_id=location_id
-                )
-            except Exception as le:
-                print(f"DEBUG: Could not init local langfuse handler: {le}")
+        try:
+            # Solo pasamos public_key si es necesario, pero mejor nada para dejar que use env vars
+            # que ya comprobamos que funcionan en test-trace
+            local_handler = CallbackHandler() 
+            print("DEBUG: Langfuse Handler initialized successfully")
+        except Exception as le:
+            print(f"DEBUG: CRITICAL - Could not init langfuse handler: {le}")
+            import traceback
+            traceback.print_exc()
 
         # 2. Configurar callbacks y metadata para Langchain
         callbacks = [local_handler] if local_handler else []
@@ -257,18 +255,20 @@ async def generate_prompt(
             "callbacks": callbacks, 
             "metadata": langfuse_metadata,
             "tags": [location_id, agency_name],
-            "run_name": f"Generation: {agency_name}"
+            "run_name": agency_name # El nombre de la ejecución principal
         }
         
         print(f"DEBUG: Invoking agent for location {location_id} (Agency: {agency_name})")
+        # Asegurarnos de que el agente reciba el config con los callbacks
         result = agent.invoke(initial_state, config=config)
         print("DEBUG: Agent invocation successful")
         
         # 3. Forzar el envío de la traza ANTES de responder
         if local_handler:
             try:
-                print("DEBUG: Flushing Langfuse trace...")
+                print("DEBUG: Flushing Langfuse trace explicitly...")
                 local_handler.flush()
+                print("DEBUG: Flush completed")
             except Exception as fe:
                 print(f"DEBUG: Langfuse flush failed: {fe}")
         
