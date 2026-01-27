@@ -101,7 +101,14 @@ const HistoryPage = () => {
     };
 
     return (
-        <div className="app-container" style={{ height: 'calc(100vh - 20px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem 0 0 0' }}>
+        <div style={{
+            height: 'calc(100vh - 120px)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            width: '100%',
+            maxWidth: '100%'
+        }}>
             {/* Header removed as requested, keeping just enough space or simple navigation if needed */}
             <div style={{ height: '20px' }}></div>
 
