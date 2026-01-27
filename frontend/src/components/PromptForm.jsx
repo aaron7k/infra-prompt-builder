@@ -1,51 +1,48 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Plus, X, Upload, FileText, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Send, Plus, X, Upload, FileText, AlertCircle, CheckCircle2, Copy, Download, XCircle } from 'lucide-react';
 import axios from 'axios';
 
 const PromptForm = ({ locationId }) => {
-  const [formData, setFormData] = useState({
-    assistantRole: '',
-    agencyName: '',
-    tasks: [],
-    context: '',
-    fewShot: [],
-    formatRestrictions: '',
-    toolLogic: ''
+  // Initialize state directly from localStorage to avoid persistence race conditions
+  const [formData, setFormData] = useState(() => {
+    const saved = localStorage.getItem('promptBuilder_formData');
+    return saved ? JSON.parse(saved) : {
+      assistantRole: '',
+      agencyName: '',
+      tasks: [],
+      context: '',
+      fewShot: [],
+      formatRestrictions: '',
+      toolLogic: ''
+    };
   });
+
+  const [generatedPrompt, setGeneratedPrompt] = useState(() => {
+    const saved = localStorage.getItem('promptBuilder_generatedPrompt');
+    // Ensure we don't load the string "undefined"
+    return (saved && saved !== 'undefined') ? saved : '';
+  });
+
   const [currentTask, setCurrentTask] = useState('');
   const [currentFewShot, setCurrentFewShot] = useState('');
   const [loading, setLoading] = useState(false);
-  const [generatedPrompt, setGeneratedPrompt] = useState('');
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [contextMode, setContextMode] = useState('text'); // 'text' or 'file'
+  const [showModal, setShowModal] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Load from localStorage on mount
+  // Still save to localStorage on change
   useEffect(() => {
-    const savedData = localStorage.getItem('promptBuilder_formData');
-    const savedPrompt = localStorage.getItem('promptBuilder_generatedPrompt');
-
-    if (savedData) {
-      try {
-        setFormData(JSON.parse(savedData));
-      } catch (e) {
-        console.error("Failed to parse saved form data", e);
-      }
+    if (formData) {
+      localStorage.setItem('promptBuilder_formData', JSON.stringify(formData));
     }
-
-    if (savedPrompt) {
-      setGeneratedPrompt(savedPrompt);
-    }
-  }, []);
-
-  // Save to localStorage on change
-  useEffect(() => {
-    localStorage.setItem('promptBuilder_formData', JSON.stringify(formData));
   }, [formData]);
 
   useEffect(() => {
-    localStorage.setItem('promptBuilder_generatedPrompt', generatedPrompt);
+    if (generatedPrompt !== undefined) {
+      localStorage.setItem('promptBuilder_generatedPrompt', generatedPrompt);
+    }
   }, [generatedPrompt]);
 
   const handleAddTask = () => {
@@ -108,7 +105,6 @@ const PromptForm = ({ locationId }) => {
     setSuccess(false);
 
     try {
-      // Backend expects FormData, not JSON
       const formDataToSend = new FormData();
       formDataToSend.append('assistant_role', formData.assistantRole);
       formDataToSend.append('agency_name', formData.agencyName);
@@ -123,29 +119,40 @@ const PromptForm = ({ locationId }) => {
 
       const response = await axios.post('/api/generate-prompt', formDataToSend);
 
-      const result = response.data.prompt;
+      // FIX: Use generated_prompt instead of prompt
+      const result = response.data.generated_prompt;
+      if (!result) {
+        console.error("Backend response missing generated_prompt:", response.data);
+        throw new Error("El backend no devolvió el prompt esperado.");
+      }
+
       setGeneratedPrompt(result);
+      setShowModal(true); // Open modal on success
 
       if (locationId) {
-        await axios.post('/api/prompts', {
-          location_id: locationId,
-          assistant_role: formData.assistantRole,
-          agency_name: formData.agencyName,
-          parameters: {
-            tasks: formData.tasks,
-            context: formData.context,
-            few_shot: formData.fewShot,
-            format_restrictions: formData.formatRestrictions,
-            tool_logic: formData.toolLogic
-          },
-          generated_prompt: result
-        });
+        try {
+          await axios.post('/api/prompts', {
+            location_id: locationId,
+            assistant_role: formData.assistantRole,
+            agency_name: formData.agencyName,
+            parameters: {
+              tasks: formData.tasks,
+              context: formData.context,
+              few_shot: formData.fewShot,
+              format_restrictions: formData.formatRestrictions,
+              tool_logic: formData.toolLogic
+            },
+            generated_prompt: result
+          });
+        } catch (dbErr) {
+          console.warn("Could not save to Supabase history, but prompt was generated:", dbErr);
+        }
       }
 
       setSuccess(true);
     } catch (err) {
       console.error(err);
-      setError('Error al generar el prompt. Verifica que el backend esté corriendo.');
+      setError(err.message || 'Error al generar el prompt. Verifica que el backend esté corriendo.');
     } finally {
       setLoading(false);
     }
@@ -153,7 +160,18 @@ const PromptForm = ({ locationId }) => {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(generatedPrompt);
-    alert('Prompt copiado al portapapeles');
+    // Use a toast instead of alert for better UX if possible, but keeping it simple for now
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 2000);
+  };
+
+  const downloadPrompt = () => {
+    const element = document.createElement("a");
+    const file = new Blob([generatedPrompt], { type: 'text/plain' });
+    element.href = URL.createObjectURL(file);
+    element.download = "prompt_maestro.txt";
+    document.body.appendChild(element);
+    element.click();
   };
 
   return (
@@ -327,6 +345,7 @@ const PromptForm = ({ locationId }) => {
             />
           ) : (
             <div
+              className="file-upload-zone"
               style={{
                 border: '2px dashed var(--border)',
                 borderRadius: '8px',
@@ -337,8 +356,6 @@ const PromptForm = ({ locationId }) => {
                 background: 'rgba(255,255,255,0.02)'
               }}
               onClick={() => fileInputRef.current.click()}
-              onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent)'}
-              onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
             >
               <input
                 type="file"
@@ -378,26 +395,44 @@ const PromptForm = ({ locationId }) => {
         </div>
       )}
 
-      {generatedPrompt && (
-        <div style={{ marginTop: '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ color: 'var(--accent)' }}>Resultado:</h3>
-            <button className="button" onClick={copyToClipboard} style={{ fontSize: '0.875rem' }}>
-              Copiar al Portapapeles
-            </button>
+      {/* Modal for Results */}
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 style={{ color: 'var(--accent)', margin: 0 }}>Prompt Maestro Generado</h2>
+              <button className="modal-close" onClick={() => setShowModal(false)}>
+                <XCircle size={24} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="prompt-output-container">
+                {generatedPrompt}
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button className="button" style={{ background: 'var(--secondary-bg)', border: '1px solid var(--border)' }} onClick={downloadPrompt}>
+                <Download size={18} /> Descargar .txt
+              </button>
+              <button className="button" onClick={copyToClipboard}>
+                {success ? <CheckCircle2 size={18} /> : <Copy size={18} />}
+                {success ? '¡Copiado!' : 'Copiar al Portapapeles'}
+              </button>
+            </div>
           </div>
-          <div style={{
-            background: 'rgba(0, 0, 0, 0.3)',
-            padding: '1.5rem',
-            borderRadius: '8px',
-            border: '1px solid var(--border)',
-            whiteSpace: 'pre-wrap',
-            fontSize: '0.9rem',
-            fontFamily: 'monospace',
-            maxHeight: '400px',
-            overflowY: 'auto'
-          }}>
-            {generatedPrompt}
+        </div>
+      )}
+
+      {/* Legacy result box for persistence visibility, hidden but present */}
+      {generatedPrompt && !showModal && (
+        <div style={{ marginTop: '2rem', opacity: 0.6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h4 className="text-dim">Último resultado guardado:</h4>
+            <button className="button" onClick={() => setShowModal(true)} style={{ fontSize: '0.75rem', padding: '0.4rem 0.8rem' }}>
+              Ver de nuevo
+            </button>
           </div>
         </div>
       )}
