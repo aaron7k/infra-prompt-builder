@@ -7,7 +7,7 @@ from typing import List, Optional
 import uvicorn
 from dotenv import load_dotenv
 from supabase import create_client, Client
-from langfuse.callback import CallbackHandler
+from langfuse.langchain import CallbackHandler
 from langfuse import Langfuse
 
 # Cargar variables de entorno
