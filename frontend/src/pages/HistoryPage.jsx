@@ -63,8 +63,30 @@ const HistoryPage = () => {
     };
 
     const copyToClipboard = (text) => {
-        navigator.clipboard.writeText(text);
-        showToast('Prompt copiado al portapapeles');
+        if (!text) return;
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text)
+                .then(() => showToast('Prompt copiado al portapapeles'))
+                .catch(() => fallbackCopy(text));
+        } else {
+            fallbackCopy(text);
+        }
+    };
+
+    const fallbackCopy = (text) => {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showToast('Prompt copiado al portapapeles');
+        } catch (err) {
+            showToast('Error al copiar', 'error');
+        }
+        document.body.removeChild(textArea);
     };
 
     const downloadPrompt = (prompt) => {

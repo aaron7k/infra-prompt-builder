@@ -193,9 +193,37 @@ const PromptForm = ({ locationId }) => {
   };
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(generatedPrompt);
-    setSuccess(true);
-    setTimeout(() => setSuccess(false), 2000);
+    const text = generatedPrompt;
+    if (!text) return;
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text)
+        .then(() => {
+          setSuccess(true);
+          setToast({ message: 'Prompt copiado!', type: 'success' });
+          setTimeout(() => setSuccess(false), 2000);
+        })
+        .catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  };
+
+  const fallbackCopy = (text) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      setSuccess(true);
+      setToast({ message: 'Prompt copiado!', type: 'success' });
+      setTimeout(() => setSuccess(false), 2000);
+    } catch (err) {
+      setToast({ message: 'Error al copiar', type: 'error' });
+    }
+    document.body.removeChild(textArea);
   };
 
   const downloadPrompt = () => {
