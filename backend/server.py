@@ -56,12 +56,25 @@ except Exception as e:
     print(f"Error initializing Supabase client: {e}")
     supabase = None
 
-# Inicializar Langfuse
-langfuse_handler = CallbackHandler(
-    public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
-    secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
-    host=os.getenv("LANGFUSE_HOST")
-)
+# Inicializar Langfuse (Opcional, no debe romper el servidor si faltan llaves)
+try:
+    pk = os.getenv("LANGFUSE_PUBLIC_KEY")
+    sk = os.getenv("LANGFUSE_SECRET_KEY")
+    host = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+    
+    if pk and sk:
+        langfuse_handler = CallbackHandler(
+            public_key=pk,
+            secret_key=sk,
+            host=host
+        )
+        print("Langfuse handler initialized successfully")
+    else:
+        print("WARNING: Langfuse keys missing, tracing disabled")
+        langfuse_handler = None
+except Exception as e:
+    print(f"Error initializing Langfuse: {e}")
+    langfuse_handler = None
 
 # API Key Security
 API_KEY_NAME = "X-API-KEY"
@@ -117,12 +130,13 @@ async def generate_prompt(
             "messages": []
         }
         
-        # Ejecutar el agente con Langfuse Tracing
-        # Pasamos el handler a través de la configuración de LangGraph si es posible, 
-        # o lo usamos directamente en el nodo (que ya está configurado para usar ChatOpenAI).
-        # Para LangGraph, podemos pasar callbacks en la invocación.
-        config = {"callbacks": [langfuse_handler], "run_name": f"Prompt Generation - {location_id}"}
+        # Ejecutar el agente con Langfuse Tracing (si está disponible)
+        callbacks = [langfuse_handler] if langfuse_handler else []
+        config = {"callbacks": callbacks, "run_name": f"Prompt Generation - {location_id}"}
+        
+        print(f"DEBUG: Invoking agent for location {location_id}...")
         result = agent.invoke(initial_state, config=config)
+        print("DEBUG: Agent invocation successful")
         
         generated_prompt = result.get("generated_prompt", "")
         
