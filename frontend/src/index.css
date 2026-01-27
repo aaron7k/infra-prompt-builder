@@ -36,7 +36,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2rem;
+  padding: 1rem;
+  width: 100%;
 }
 
 .card {
@@ -46,8 +47,8 @@ body {
   box-shadow: var(--shadow-md);
   backdrop-filter: blur(8px);
   padding: 1.5rem;
-  width: 98%;
-  max-width: 2500px;
+  width: 100%;
+  max-width: none;
   min-width: 300px;
 }
 
