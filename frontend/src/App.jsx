@@ -84,7 +84,7 @@ function FormPage() {
         )}
       </header>
 
-      <main className="w-full max-w-6xl">
+      <main className="w-full">
         <PromptForm locationId={locationId} />
       </main>
 
