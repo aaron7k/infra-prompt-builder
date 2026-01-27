@@ -90,7 +90,7 @@ function FormPage() {
 
       <footer style={{ marginTop: '4rem', padding: '2rem', borderTop: '1px solid var(--border)', width: '100%', textAlign: 'center' }}>
         <p className="text-dim" style={{ fontSize: '0.875rem' }}>
-          &copy; 2026 Prompt Builder Agent. Built with FastAPI, LangGraph, Supabase & Langfuse.
+          &copy; 2026 Prompt Builder Agent. Infragrowth AI
         </p>
       </footer>
     </>
