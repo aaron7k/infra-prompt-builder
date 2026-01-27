@@ -18,15 +18,12 @@ Tu misión es transmutar los parámetros de entrada en un Prompt de Sistema inex
 - **DENSIDAD**: Cada palabra debe aportar valor. Evita redundancias y preámbulos.
 """
 
-PROMPT_BUILDER_USER_TEMPLATE = """Por favor, construye un prompt de sistema para el siguiente asistente:
-
+PROMPT_BUILDER_USER_TEMPLATE = """\
 - **Rol**: {assistant_role}
 - **Agencia/Negocio**: {agency_name}
 - **Tareas**: {tasks}
 - **Contexto**: {context}
 - **Ejemplos Few-Shot**: {few_shot}
 - **Restricciones de Formato**: {format_restrictions}
-- **Lógica de Herramientas**: {tool_logic}
-
-Genera el prompt de sistema final en texto plano, listo para ser copiado.
+- **Lógica de Herramientas**: {tool_logic}.
 """
