@@ -8,6 +8,7 @@ import uvicorn
 from dotenv import load_dotenv
 from supabase import create_client, Client
 from langfuse.callback import CallbackHandler
+from langfuse import Langfuse
 
 # Cargar variables de entorno
 load_dotenv()
@@ -112,24 +113,55 @@ async def root():
 
 @app.get("/api/test-trace")
 async def test_trace():
-    if not langfuse_handler:
-        return {"status": "error", "message": "Langfuse handler not initialized"}
+    print("DEBUG: Starting test-trace diagnostic...")
+    pk = os.getenv("LANGFUSE_PUBLIC_KEY")
+    sk = os.getenv("LANGFUSE_SECRET_KEY")
+    host = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
     
+    if not pk or not sk:
+        return {"status": "error", "message": "Langfuse keys missing in environment"}
+
     try:
-        # Intentar una traza manual simple
-        print("DEBUG: Sending test trace to Langfuse...")
-        # Note: CallbackHandler might not have a direct 'trace' method like the core SDK, 
-        # but we can check connectivity via the underlying client if needed.
-        # However, just checking if flush doesn't crash is a start.
-        langfuse_handler.flush()
-        return {
-            "status": "success", 
-            "message": "Manual flush triggered. Check Langfuse dashboard.",
-            "host": os.getenv("LANGFUSE_HOST")
-        }
+        print(f"DEBUG: Attempting Langfuse connection to {host}...")
+        # Usar el cliente base para el check, es más directo
+        lf_client = Langfuse(
+            public_key=pk,
+            secret_key=sk,
+            host=host,
+            # Forzar un timeout corto para que no cuelgue el servidor y de 502
+            timeout=10 
+        )
+        
+        print("DEBUG: Calling auth_check()...")
+        auth_ok = lf_client.auth_check()
+        
+        if auth_ok:
+            print("DEBUG: Auth check successful, sending test event...")
+            lf_client.event(name="test-connection", metadata={"source": "api-diagnostic"})
+            lf_client.flush()
+            return {
+                "status": "success",
+                "message": "Langfuse connection verified and test event sent.",
+                "host": host,
+                "auth_check": auth_ok
+            }
+        else:
+            print("DEBUG: Auth check failed (invalid keys or host)")
+            return {
+                "status": "error",
+                "message": "Auth check failed. Verify your keys and host URL.",
+                "host": host
+            }
+            
     except Exception as e:
-        print(f"DEBUG: Trace test failed: {e}")
-        return {"status": "error", "message": str(e)}
+        print(f"DEBUG: Trace test CRASHED: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "status": "error",
+            "message": f"Exception during diagnostic: {str(e)}",
+            "type": type(e).__name__
+        }
 
 @app.post("/api/generate-prompt")
 async def generate_prompt(
