@@ -28,6 +28,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_KEY=${VITE_API_KEY}
     ports:
       - "8080:80"
     depends_on:

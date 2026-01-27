@@ -86,7 +86,8 @@ async def root():
         "env_check": {
             "SUPABASE_URL": "Set" if os.getenv("SUPABASE_URL") else "Missing",
             "SUPABASE_KEY": "Set" if os.getenv("SUPABASE_KEY") else "Missing",
-             "OPENAI_API_KEY": "Set" if os.getenv("OPENAI_API_KEY") else "Missing"
+            "OPENAI_API_KEY": "Set" if os.getenv("OPENAI_API_KEY") else "Missing",
+            "INTERNAL_API_KEY": "Set" if os.getenv("INTERNAL_API_KEY") else "Missing"
         }
     }
 
