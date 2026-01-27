@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { History, Trash2, FileText, Calendar, AlertCircle, Copy, Download, CheckCircle2 } from 'lucide-react';
-import axios from 'axios';
+import api from '../api';
 import ReactMarkdown from 'react-markdown';
 import Toast from '../components/Toast';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -31,7 +31,7 @@ const HistoryPage = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await axios.get(`/api/prompts/${locId}`);
+            const response = await api.get(`/api/prompts/${locId}`);
             setPrompts(response.data || []);
         } catch (err) {
             console.error(err);
@@ -50,7 +50,7 @@ const HistoryPage = () => {
         if (!id) return;
 
         try {
-            await axios.delete(`/api/prompts/${id}`);
+            await api.delete(`/api/prompts/${id}`);
             setPrompts(prompts.filter(p => p.id !== id));
             if (selectedPrompt?.id === id) setSelectedPrompt(null);
             showToast('Prompt eliminado correctamente', 'success');

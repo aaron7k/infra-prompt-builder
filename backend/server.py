@@ -1,6 +1,7 @@
 import sys
 import os
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Security
+from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 import uvicorn
@@ -60,6 +61,23 @@ langfuse_handler = CallbackHandler(
     public_key=os.getenv("LANGFUSE_PUBLIC_KEY")
 )
 
+# API Key Security
+API_KEY_NAME = "X-API-KEY"
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
+
+async def get_api_key(api_key: str = Security(api_key_header)):
+    expected_api_key = os.getenv("INTERNAL_API_KEY")
+    if not expected_api_key:
+        # If no key is set in production, we might want to warn but allow during setup
+        # However, for security, it's better to require it if we are intentional about it.
+        return api_key
+    if api_key != expected_api_key:
+        raise HTTPException(
+            status_code=403, 
+            detail="Could not validate credentials"
+        )
+    return api_key
+
 @app.get("/")
 async def root():
     return {
@@ -81,7 +99,8 @@ async def generate_prompt(
     few_shot: str = Form(...),
     format_restrictions: str = Form(...),
     location_id: str = Form(...),
-    tool_logic: Optional[str] = Form(None)
+    tool_logic: Optional[str] = Form(None),
+    api_key: str = Depends(get_api_key)
 ):
     try:
         # Preparar el estado inicial
@@ -133,7 +152,7 @@ async def generate_prompt(
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/prompts/{location_id}")
-async def get_prompts(location_id: str):
+async def get_prompts(location_id: str, api_key: str = Depends(get_api_key)):
     try:
         response = supabase.table("prompts").select("*").eq("location_id", location_id).order("created_at", desc=True).execute()
         return response.data
@@ -141,7 +160,7 @@ async def get_prompts(location_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/api/prompts/{prompt_id}")
-async def delete_prompt(prompt_id: str):
+async def delete_prompt(prompt_id: str, api_key: str = Depends(get_api_key)):
     try:
         supabase.table("prompts").delete().eq("id", prompt_id).execute()
         return {"status": "deleted"}
@@ -149,7 +168,7 @@ async def delete_prompt(prompt_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/upload-context")
-async def upload_context(file: UploadFile = File(...)):
+async def upload_context(file: UploadFile = File(...), api_key: str = Depends(get_api_key)):
     try:
         content = await file.read()
         return {"content": content.decode("utf-8")}

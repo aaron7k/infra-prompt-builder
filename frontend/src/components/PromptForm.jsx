@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Send, Plus, X, Upload, FileText, AlertCircle, CheckCircle2, Copy, Download, XCircle, Trash2 } from 'lucide-react';
-import axios from 'axios';
+import api from '../api';
 import ReactMarkdown from 'react-markdown';
 import Toast from './Toast';
 import ConfirmDialog from './ConfirmDialog';
@@ -152,7 +152,7 @@ const PromptForm = ({ locationId }) => {
         formDataToSend.append('tool_logic', formData.toolLogic);
       }
 
-      const response = await axios.post('/api/generate-prompt', formDataToSend);
+      const response = await api.post('/api/generate-prompt', formDataToSend);
 
       const result = response.data.generated_prompt || response.data.prompt || '';
 
