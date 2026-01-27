@@ -66,10 +66,8 @@ API_KEY_NAME = "X-API-KEY"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
 
 async def get_api_key(api_key: str = Security(api_key_header)):
-    expected_api_key = os.getenv("INTERNAL_API_KEY")
+    expected_api_key = os.getenv("VITE_API_KEY")
     if not expected_api_key:
-        # If no key is set in production, we might want to warn but allow during setup
-        # However, for security, it's better to require it if we are intentional about it.
         return api_key
     if api_key != expected_api_key:
         raise HTTPException(
@@ -87,7 +85,7 @@ async def root():
             "SUPABASE_URL": "Set" if os.getenv("SUPABASE_URL") else "Missing",
             "SUPABASE_KEY": "Set" if os.getenv("SUPABASE_KEY") else "Missing",
             "OPENAI_API_KEY": "Set" if os.getenv("OPENAI_API_KEY") else "Missing",
-            "INTERNAL_API_KEY": "Set" if os.getenv("INTERNAL_API_KEY") else "Missing"
+            "VITE_API_KEY": "Set" if os.getenv("VITE_API_KEY") else "Missing"
         }
     }
 
