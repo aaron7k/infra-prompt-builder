@@ -229,26 +229,53 @@ async def generate_prompt(
             "messages": []
         }
         
-        # Metadata enriquecida para Langfuse (se captura automáticamente por el CallbackHandler)
+        # Metadata enriquecida para Langfuse
         langfuse_metadata = {
-            "location_id": location_id,
             "assistant_role": assistant_role,
             "agency_name": agency_name,
-            "process": "prompt_generation_v1"
+            "tasks": tasks,
+            "process": "prompt_builder_v1"
         }
         
-        # Ejecutar el agente con Langfuse Tracing (si está disponible)
-        callbacks = [langfuse_handler] if langfuse_handler else []
+        # 1. Crear un handler específico para esta petición para poder setear userId y traceName
+        # Esto asegura que la traza se llame como la agencia y el usuario sea la location_id
+        local_handler = None
+        pk = os.getenv("LANGFUSE_PUBLIC_KEY")
+        sk = os.getenv("LANGFUSE_SECRET_KEY")
+        host = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+        
+        if pk and sk:
+            try:
+                local_handler = CallbackHandler(
+                    public_key=pk.strip(),
+                    secret_key=sk.strip(),
+                    host=host.strip(),
+                    user_id=location_id,
+                    trace_name=agency_name
+                )
+            except Exception as le:
+                print(f"DEBUG: Could not init local langfuse handler: {le}")
+
+        # 2. Configurar callbacks y metadata para Langchain
+        callbacks = [local_handler] if local_handler else []
         config = {
             "callbacks": callbacks, 
-            "run_name": f"Prompt Generation",
             "metadata": langfuse_metadata,
-            "tags": [location_id, agency_name]
+            "tags": [location_id, agency_name],
+            "run_name": f"Generation: {agency_name}"
         }
         
-        print(f"DEBUG: Invoking agent for location {location_id} with metadata...")
+        print(f"DEBUG: Invoking agent for location {location_id} (Agency: {agency_name})")
         result = agent.invoke(initial_state, config=config)
         print("DEBUG: Agent invocation successful")
+        
+        # 3. Forzar el envío de la traza ANTES de responder
+        if local_handler:
+            try:
+                print("DEBUG: Flushing Langfuse trace...")
+                local_handler.flush()
+            except Exception as fe:
+                print(f"DEBUG: Langfuse flush failed: {fe}")
         
         generated_prompt = result.get("generated_prompt", "")
         
@@ -269,13 +296,6 @@ async def generate_prompt(
         
         supabase.table("prompts").insert(db_data).execute()
         
-        # Asegurar que las trazas se envíen
-        if langfuse_handler:
-            try:
-                langfuse_handler.flush()
-            except:
-                pass
-                
         return {
             "status": "success",
             "generated_prompt": generated_prompt,
