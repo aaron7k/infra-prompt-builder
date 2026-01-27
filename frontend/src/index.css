@@ -58,7 +58,6 @@ body {
   padding: 2rem 0 0 0;
   width: 100%;
   overflow: hidden;
-  /* Prevent page scroll */
 }
 
 .card {
@@ -226,17 +225,7 @@ h1 {
   color: var(--danger);
 }
 
-@media (max-width: 768px) {
-  .card {
-    width: 95%;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Modal Styles - ROOT SCOPE */
+/* Modal Styles */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -311,13 +300,9 @@ h1 {
   padding: 2rem;
   border-radius: 10px;
   border: 1px solid var(--border);
-  white-space: pre-wrap;
   font-size: 1.1rem;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
   line-height: 1.7;
   color: #e5e5e5;
-  max-height: 45vh;
-  overflow-y: auto;
 }
 
 @keyframes slideUp {
@@ -346,7 +331,8 @@ h1 {
   width: 100%;
 }
 
-@media (max-width: 1024px) {
+/* Responsive Rules */
+@media (max-width: 1200px) {
   .card {
     width: 90%;
   }
@@ -361,4 +347,80 @@ h1 {
   .form-grid {
     grid-template-columns: 1fr !important;
   }
+}
+
+/* Markdown Rendering Styles */
+.markdown-body {
+  line-height: 1.7;
+  color: var(--text-main);
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+  color: var(--text-main);
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.markdown-body h1 {
+  font-size: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+
+.markdown-body h2 {
+  font-size: 1.25rem;
+}
+
+.markdown-body h3 {
+  font-size: 1.1rem;
+}
+
+.markdown-body p {
+  margin-bottom: 1.25rem;
+  opacity: 0.9;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin-bottom: 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.markdown-body li {
+  margin-bottom: 0.5rem;
+}
+
+.markdown-body code {
+  background: rgba(142, 36, 170, 0.2);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.9em;
+  color: #ff80ff;
+}
+
+.markdown-body pre {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.markdown-body pre code {
+  background: transparent;
+  padding: 0;
+  color: #e0e0e0;
+}
+
+.markdown-body blockquote {
+  border-left: 4px solid var(--accent);
+  padding-left: 1rem;
+  margin-left: 0;
+  color: var(--text-dim);
+  font-style: italic;
 }

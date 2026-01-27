@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { History, Trash2, FileText, Calendar, AlertCircle, Copy, Download, CheckCircle2 } from 'lucide-react';
 import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
+import Toast from '../components/Toast';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const HistoryPage = () => {
     const [locationId, setLocationId] = useState('default');
@@ -8,7 +11,10 @@ const HistoryPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [selectedPrompt, setSelectedPrompt] = useState(null);
-    const [copySuccess, setCopySuccess] = useState(false);
+
+    // UI State
+    const [toast, setToast] = useState(null);
+    const [confirmDelete, setConfirmDelete] = useState(null);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -16,6 +22,10 @@ const HistoryPage = () => {
         setLocationId(locId);
         fetchHistory(locId);
     }, []);
+
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+    };
 
     const fetchHistory = async (locId) => {
         setLoading(true);
@@ -25,29 +35,36 @@ const HistoryPage = () => {
             setPrompts(response.data || []);
         } catch (err) {
             console.error(err);
-            setError('Error al cargar el historial. Verifica la conexión con el servidor.');
+            setError('Error al cargar el historial.');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!confirm('¿Estás seguro de eliminar este prompt?')) return;
+    const confirmDeletePrompt = (id) => {
+        setConfirmDelete(id);
+    };
+
+    const handleDelete = async () => {
+        const id = confirmDelete;
+        if (!id) return;
 
         try {
             await axios.delete(`/api/prompts/${id}`);
             setPrompts(prompts.filter(p => p.id !== id));
             if (selectedPrompt?.id === id) setSelectedPrompt(null);
+            showToast('Prompt eliminado correctamente', 'success');
         } catch (err) {
             console.error(err);
-            alert('Error al eliminar el prompt');
+            showToast('Error al eliminar el prompt', 'error');
+        } finally {
+            setConfirmDelete(null);
         }
     };
 
     const copyToClipboard = (text) => {
         navigator.clipboard.writeText(text);
-        setCopySuccess(true);
-        setTimeout(() => setCopySuccess(false), 2000);
+        showToast('Prompt copiado al portapapeles');
     };
 
     const downloadPrompt = (prompt) => {
@@ -58,19 +75,13 @@ const HistoryPage = () => {
         document.body.appendChild(element);
         element.click();
         document.body.removeChild(element);
+        showToast('Archivo descargado');
     };
 
     return (
-        <div className="app-container" style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <header style={{ textAlign: 'center', padding: '1rem 0 2rem 0', flexShrink: 0 }}>
-                <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', fontSize: '2rem' }}>
-                    <History size={36} style={{ color: 'var(--accent)' }} />
-                    Historial de Prompts
-                </h1>
-                <div style={{ marginTop: '0.4rem', fontSize: '0.85rem', color: 'var(--accent)', fontWeight: 500 }}>
-                    UBICACIÓN: <span style={{ opacity: 0.8 }}>{locationId}</span>
-                </div>
-            </header>
+        <div className="app-container" style={{ height: 'calc(100vh - 20px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem 0 0 0' }}>
+            {/* Header removed as requested, keeping just enough space or simple navigation if needed */}
+            <div style={{ height: '20px' }}></div>
 
             <main className="card" style={{
                 display: 'grid',
@@ -79,10 +90,11 @@ const HistoryPage = () => {
                 alignItems: 'stretch',
                 padding: '0',
                 overflow: 'hidden',
-                flex: 1, // Take remaining height
+                flex: 1,
                 width: '80%',
-                maxHeight: 'calc(100vh - 180px)',
-                marginBottom: '1rem'
+                maxHeight: 'calc(100vh - 60px)',
+                marginBottom: '1rem',
+                border: '1px solid var(--border)'
             }}>
                 {/* Sidebar: Lista de prompts */}
                 <aside style={{
@@ -94,7 +106,11 @@ const HistoryPage = () => {
                 }}>
                     <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
                         <h3 style={{ fontSize: '0.9rem', color: 'var(--text-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            Guardados <span style={{ background: 'var(--accent)', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem' }}>{prompts.length}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <History size={16} className="text-accent" />
+                                Historial
+                            </div>
+                            <span style={{ opacity: 0.5, fontSize: '0.75rem' }}>{prompts.length}</span>
                         </h3>
                     </div>
 
@@ -102,18 +118,7 @@ const HistoryPage = () => {
                         {loading && <p className="text-dim" style={{ textAlign: 'center', padding: '2rem' }}>Cargando...</p>}
 
                         {error && (
-                            <div style={{
-                                padding: '1rem',
-                                backgroundColor: 'rgba(255, 77, 77, 0.05)',
-                                color: 'var(--danger)',
-                                borderRadius: '8px',
-                                border: '1px solid rgba(255, 77, 77, 0.2)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.75rem',
-                                fontSize: '0.85rem'
-                            }}>
-                                <AlertCircle size={18} />
+                            <div style={{ padding: '1rem', color: 'var(--danger)', fontSize: '0.85rem' }}>
                                 {error}
                             </div>
                         )}
@@ -121,7 +126,7 @@ const HistoryPage = () => {
                         {!loading && !error && prompts.length === 0 && (
                             <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
                                 <FileText size={40} style={{ marginBottom: '1rem', opacity: 0.1 }} />
-                                <p className="text-dim" style={{ fontSize: '0.85rem' }}>Sin historial.</p>
+                                <p className="text-dim" style={{ fontSize: '0.85rem' }}>Vacío.</p>
                             </div>
                         )}
 
@@ -137,12 +142,11 @@ const HistoryPage = () => {
                                         borderRadius: '8px',
                                         cursor: 'pointer',
                                         transition: 'all 0.15s ease',
-                                        position: 'relative'
                                     }}
                                     className="history-item"
                                 >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                                        <div style={{ flex: 1, pr: '1.5rem', overflow: 'hidden' }}>
+                                        <div style={{ flex: 1, overflow: 'hidden' }}>
                                             <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                 {prompt.assistant_role}
                                             </div>
@@ -153,7 +157,7 @@ const HistoryPage = () => {
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleDelete(prompt.id);
+                                                confirmDeletePrompt(prompt.id);
                                             }}
                                             style={{
                                                 background: 'transparent',
@@ -162,8 +166,7 @@ const HistoryPage = () => {
                                                 cursor: 'pointer',
                                                 padding: '0.3rem',
                                                 borderRadius: '6px',
-                                                opacity: 0.4,
-                                                flexShrink: 0
+                                                opacity: 0.4
                                             }}
                                             className="delete-btn"
                                         >
@@ -189,17 +192,16 @@ const HistoryPage = () => {
                 <section style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    background: 'rgba(0,0,0,0.15)',
+                    background: 'rgba(0,0,0,0.1)',
                     overflow: 'hidden'
                 }}>
                     {selectedPrompt ? (
                         <>
-                            {/* Sticky Header inside the column */}
+                            {/* Persistent Header */}
                             <div style={{
-                                padding: '1.5rem 2.5rem',
+                                padding: '1.25rem 2.5rem',
                                 borderBottom: '1px solid var(--border)',
-                                background: 'rgba(30, 27, 46, 0.95)', // Matches secondary-bg
-                                backdropFilter: 'blur(10px)',
+                                background: 'var(--secondary-bg)',
                                 zIndex: 10,
                                 display: 'flex',
                                 justifyContent: 'space-between',
@@ -207,88 +209,39 @@ const HistoryPage = () => {
                                 flexShrink: 0
                             }}>
                                 <div>
-                                    <h2 style={{ color: 'var(--text-main)', fontSize: '1.4rem', marginBottom: '0.2rem' }}>{selectedPrompt.assistant_role}</h2>
-                                    <p style={{ color: 'var(--accent)', fontWeight: 500, fontSize: '0.9rem' }}>{selectedPrompt.agency_name}</p>
+                                    <h2 style={{ color: 'var(--text-main)', fontSize: '1.25rem' }}>{selectedPrompt.assistant_role}</h2>
+                                    <p style={{ color: 'var(--accent)', fontSize: '0.85rem' }}>{selectedPrompt.agency_name}</p>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.6rem' }}>
                                     <button
                                         className="button secondary"
                                         onClick={() => downloadPrompt(selectedPrompt)}
-                                        style={{ padding: '0.5rem 0.8rem', fontSize: '0.8rem', border: '1px solid var(--border)', background: 'transparent' }}
+                                        style={{ padding: '0.5rem 0.8rem', fontSize: '0.8rem' }}
                                     >
                                         <Download size={14} /> .txt
                                     </button>
                                     <button
                                         className="button"
                                         onClick={() => copyToClipboard(selectedPrompt.generated_prompt)}
-                                        style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                        style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', background: 'var(--accent)', color: 'white' }}
                                     >
-                                        {copySuccess ? <CheckCircle2 size={14} /> : <Copy size={14} />}
-                                        {copySuccess ? 'Copiado' : 'Copiar Prompt'}
+                                        <Copy size={14} style={{ marginRight: '0.4rem' }} />
+                                        Copiar Prompt
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Scrollable Content inside the column */}
+                            {/* Scrollable Markdown Content */}
                             <div style={{ flex: 1, overflowY: 'auto', padding: '2rem 2.5rem' }} className="custom-scroll">
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2.5rem' }}>
-                                    {selectedPrompt.parameters?.tasks && selectedPrompt.parameters.tasks.length > 0 && (
-                                        <div>
-                                            <h3 style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.8rem' }}>Tareas</h3>
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                                                {selectedPrompt.parameters.tasks.map((task, i) => (
-                                                    <span key={i} style={{
-                                                        background: 'rgba(255, 255, 255, 0.04)',
-                                                        border: '1px solid var(--border)',
-                                                        padding: '0.25rem 0.6rem',
-                                                        borderRadius: '4px',
-                                                        fontSize: '0.8rem',
-                                                        color: 'rgba(255,255,255,0.8)'
-                                                    }}>
-                                                        {task}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
+                                <h3 style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1.5rem' }}>Prompt</h3>
 
-                                    {selectedPrompt.parameters?.few_shot && selectedPrompt.parameters.few_shot.length > 0 && (
-                                        <div>
-                                            <h3 style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.8rem' }}>Ejemplos</h3>
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                                                {selectedPrompt.parameters.few_shot.map((ex, i) => (
-                                                    <span key={i} style={{
-                                                        background: 'rgba(142, 36, 170, 0.05)',
-                                                        border: '1px solid rgba(142, 36, 170, 0.15)',
-                                                        padding: '0.25rem 0.6rem',
-                                                        borderRadius: '4px',
-                                                        fontSize: '0.8rem',
-                                                        color: 'rgba(255,255,255,0.7)'
-                                                    }}>
-                                                        {ex}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div style={{ marginBottom: '1rem' }}>
-                                    <h3 style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>Prompt Maestro</h3>
-                                    <div style={{
-                                        background: 'rgba(0, 0, 0, 0.35)',
-                                        padding: '1.75rem',
-                                        borderRadius: '10px',
-                                        border: '1px solid var(--border)',
-                                        whiteSpace: 'pre-wrap',
-                                        fontSize: '0.95rem',
-                                        fontFamily: '"JetBrains Mono", monospace',
-                                        lineHeight: '1.6',
-                                        color: '#d1d1d1',
-                                        boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.15)'
-                                    }}>
-                                        {selectedPrompt.generated_prompt}
-                                    </div>
+                                <div className="markdown-body" style={{
+                                    fontSize: '0.95rem',
+                                    lineHeight: '1.6',
+                                    color: '#d1d1d1',
+                                    fontFamily: 'Inter, sans-serif'
+                                }}>
+                                    <ReactMarkdown>{selectedPrompt.generated_prompt}</ReactMarkdown>
                                 </div>
                             </div>
                         </>
@@ -303,35 +256,42 @@ const HistoryPage = () => {
                             opacity: 0.4
                         }}>
                             <FileText size={50} style={{ marginBottom: '1rem' }} />
-                            <p style={{ fontSize: '1rem' }}>Selecciona un prompt para visualizar los detalles</p>
+                            <p style={{ fontSize: '1rem' }}>Selecciona un registro</p>
                         </div>
                     )}
                 </section>
             </main>
 
-            <footer style={{ padding: '0.8rem', flexShrink: 0, textAlign: 'center', opacity: 0.6 }}>
-                <p style={{ fontSize: '0.75rem' }}>
-                    &copy; 2026 Prompt Builder Agent. Infragrowth AI
-                </p>
-            </footer>
+            {/* Global UI Components */}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            <ConfirmDialog
+                isOpen={!!confirmDelete}
+                title="Eliminar Prompt"
+                message="¿Estás seguro de que quieres borrar este prompt para siempre?"
+                onConfirm={handleDelete}
+                onCancel={() => setConfirmDelete(null)}
+            />
 
             <style dangerouslySetInnerHTML={{
                 __html: `
-                .history-item:hover {
-                    background: rgba(255,255,255,0.04) !important;
+                .history-item:hover { background: rgba(255,255,255,0.04) !important; }
+                .history-item:hover .delete-btn { opacity: 1 !important; }
+                .markdown-body h1, .markdown-body h2, .markdown-body h3 { 
+                    color: var(--text-main); 
+                    margin-top: 1.5rem; 
+                    margin-bottom: 0.75rem;
                 }
-                .history-item:hover .delete-btn {
-                    opacity: 1 !important;
-                }
-                .custom-scroll::-webkit-scrollbar {
-                    width: 6px;
-                }
-                .custom-scroll::-webkit-scrollbar-thumb {
-                    background: var(--border);
-                    border-radius: 3px;
-                }
-                .custom-scroll::-webkit-scrollbar-thumb:hover {
-                    background: var(--accent);
+                .markdown-body p { margin-bottom: 1rem; }
+                .markdown-body ul, .markdown-body ol { margin-bottom: 1rem; padding-left: 1.25rem; }
+                .markdown-body li { margin-bottom: 0.5rem; }
+                .markdown-body code { 
+                    max-width: 100%;
+                    overflow-x: auto;
+                    background: rgba(0,0,0,0.3);
+                    padding: 0.2rem 0.4rem;
+                    border-radius: 4px;
+                    font-family: monospace;
+                    font-size: 0.85em;
                 }
             `}} />
         </div>

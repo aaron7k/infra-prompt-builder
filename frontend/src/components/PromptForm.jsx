@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Send, Plus, X, Upload, FileText, AlertCircle, CheckCircle2, Copy, Download, XCircle, Trash2 } from 'lucide-react';
 import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
+import Toast from './Toast';
+import ConfirmDialog from './ConfirmDialog';
 
 const PromptForm = ({ locationId }) => {
   const [formData, setFormData] = useState(() => {
@@ -29,6 +32,8 @@ const PromptForm = ({ locationId }) => {
   const [success, setSuccess] = useState(false);
   const [contextMode, setContextMode] = useState('text');
   const [showModal, setShowModal] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [showConfirmClear, setShowConfirmClear] = useState(false);
   const fileInputRef = useRef(null);
 
   // Sync state between tabs
@@ -89,20 +94,24 @@ const PromptForm = ({ locationId }) => {
   };
 
   const handleClearAll = () => {
-    if (window.confirm('¿Estás seguro de que quieres borrar todos los campos? Esta acción no se puede deshacer.')) {
-      setFormData({
-        assistantRole: '',
-        agencyName: '',
-        tasks: [],
-        context: '',
-        fewShot: [],
-        formatRestrictions: '',
-        toolLogic: ''
-      });
-      setGeneratedPrompt('');
-      localStorage.removeItem('promptBuilder_formData');
-      localStorage.removeItem('promptBuilder_generatedPrompt');
-    }
+    setShowConfirmClear(true);
+  };
+
+  const confirmClear = () => {
+    setFormData({
+      assistantRole: '',
+      agencyName: '',
+      tasks: [],
+      context: '',
+      fewShot: [],
+      formatRestrictions: '',
+      toolLogic: ''
+    });
+    setGeneratedPrompt('');
+    localStorage.removeItem('promptBuilder_formData');
+    localStorage.removeItem('promptBuilder_generatedPrompt');
+    setToast({ message: 'Formulario limpiado', type: 'info' });
+    setShowConfirmClear(false);
   };
 
   const handleFileUpload = (e) => {
@@ -193,9 +202,10 @@ const PromptForm = ({ locationId }) => {
     const element = document.createElement("a");
     const file = new Blob([generatedPrompt], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
-    element.download = "prompt_maestro.txt";
+    element.download = "prompt_generado.txt";
     document.body.appendChild(element);
     element.click();
+    setToast({ message: 'Descargado correctamente', type: 'success' });
   };
 
   // Rendering the Modal via Portal for body-level overlay
@@ -207,16 +217,16 @@ const PromptForm = ({ locationId }) => {
         <div className="modal-content" onClick={e => e.stopPropagation()}>
           <div className="modal-header">
             <h2 style={{ color: 'var(--accent)', margin: 0, fontSize: '1.5rem', fontWeight: 'bold' }}>
-              🚀 Prompt Maestro Generado
+              🚀 Prompt Generado
             </h2>
             <button className="modal-close" onClick={() => setShowModal(false)}>
               <XCircle size={28} />
             </button>
           </div>
 
-          <div className="modal-body">
-            <div className="prompt-output-container">
-              {generatedPrompt}
+          <div className="modal-body custom-scroll" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+            <div className="prompt-output-container" style={{ padding: '2rem' }}>
+              <ReactMarkdown>{generatedPrompt}</ReactMarkdown>
             </div>
           </div>
 
@@ -434,7 +444,7 @@ const PromptForm = ({ locationId }) => {
           {loading ? 'Generando...' : (
             <>
               <Send size={20} />
-              Generar Prompt Maestro
+              Generar Prompt
             </>
           )}
         </button>
@@ -467,6 +477,15 @@ const PromptForm = ({ locationId }) => {
 
       {/* Modal is rendered via Portal below */}
       {renderModal()}
+
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      <ConfirmDialog
+        isOpen={showConfirmClear}
+        title="Limpiar Formulario"
+        message="¿Estás seguro de que quieres borrar todos los datos? Esto no se puede deshacer."
+        onConfirm={confirmClear}
+        onCancel={() => setShowConfirmClear(false)}
+      />
     </div>
   );
 };

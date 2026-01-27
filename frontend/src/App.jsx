@@ -77,11 +77,6 @@ function FormPage() {
           Prompt Builder AI
         </h1>
         <p className="text-dim">Diseña prompts expertos para tus asistentes de LangChain en segundos.</p>
-        {locationId && (
-          <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--accent)', opacity: 0.7 }}>
-            ID de Ubicación: {locationId}
-          </div>
-        )}
       </header>
 
       <main className="w-full">
