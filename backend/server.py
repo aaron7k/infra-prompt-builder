@@ -64,12 +64,8 @@ try:
     host = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
     
     if pk and sk:
-        langfuse_handler = CallbackHandler(
-            public_key=pk,
-            secret_key=sk,
-            host=host
-        )
-        print("Langfuse handler initialized successfully")
+        langfuse_handler = CallbackHandler()
+        print("Langfuse handler initialized successfully from environment")
     else:
         print("WARNING: Langfuse keys missing, tracing disabled")
         langfuse_handler = None
@@ -246,10 +242,9 @@ async def generate_prompt(
         
         if pk and sk:
             try:
+                # En v3.11.2, CallbackHandler toma user_id y trace_name
+                # Las llaves y el host los toma automáticamente del entorno
                 local_handler = CallbackHandler(
-                    public_key=pk.strip(),
-                    secret_key=sk.strip(),
-                    host=host.strip(),
                     user_id=location_id,
                     trace_name=agency_name
                 )
