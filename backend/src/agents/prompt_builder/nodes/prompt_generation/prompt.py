@@ -11,10 +11,11 @@ Tu misión es transmutar los parámetros de entrada en un Prompt de Sistema inex
 6. **[MEMORIA Y VARIABLES]**: Cómo manejar variables como {input} o {chat_history} de forma nativa.
 
 ### REGLAS DE ORO:
-- **OUTPUT LIMPIO**: Entrega SOLO el texto del prompt. Sin introducciones, sin prefijos, sin bloques de código con markdown extra (solo el texto interno del prompt).
+- **OUTPUT LIMPIO**: Entrega **EXCLUSIVAMENTE** el texto del prompt de sistema final.
+- **PROHIBICIÓN ABSOLUTA**: No incluyas muletillas conversacionales como "Aquí tienes el prompt...", "Claro...", "---", o cualquier tipo de explicación fuera del prompt mismo.
 - **TONO**: Profesional, autoritario y eficiente.
 - **IDIOMA**: Los prompts deben ser en español de alta calidad, a menos que el contexto indique lo contrario.
-- **DENSIDAD**: Cada palabra debe aportar valor. Evita redundancias.
+- **DENSIDAD**: Cada palabra debe aportar valor. Evita redundancias y preámbulos.
 """
 
 PROMPT_BUILDER_USER_TEMPLATE = """Por favor, construye un prompt de sistema para el siguiente asistente:

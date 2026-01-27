@@ -21,7 +21,6 @@ const HistoryPage = () => {
         setLoading(true);
         setError(null);
         try {
-            // Use relative path to leverage Vite proxy or Dokploy routing
             const response = await axios.get(`/api/prompts/${locId}`);
             setPrompts(response.data || []);
         } catch (err) {
@@ -62,42 +61,45 @@ const HistoryPage = () => {
     };
 
     return (
-        <div className="app-container">
-            <header style={{ textAlign: 'center', marginBottom: '3rem' }}>
-                <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
-                    <History size={40} style={{ color: 'var(--accent)' }} />
+        <div className="app-container" style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <header style={{ textAlign: 'center', padding: '1rem 0 2rem 0', flexShrink: 0 }}>
+                <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', fontSize: '2rem' }}>
+                    <History size={36} style={{ color: 'var(--accent)' }} />
                     Historial de Prompts
                 </h1>
-                <p className="text-dim">Gestiona y recupera tus prompts generados anteriormente.</p>
-                <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--accent)', fontWeight: 500 }}>
-                    ID: <span style={{ opacity: 0.8 }}>{locationId}</span>
+                <div style={{ marginTop: '0.4rem', fontSize: '0.85rem', color: 'var(--accent)', fontWeight: 500 }}>
+                    UBICACIÓN: <span style={{ opacity: 0.8 }}>{locationId}</span>
                 </div>
             </header>
 
             <main className="card" style={{
                 display: 'grid',
-                gridTemplateColumns: '380px 1fr',
+                gridTemplateColumns: 'minmax(300px, 350px) 1fr',
                 gap: '0',
                 alignItems: 'stretch',
                 padding: '0',
                 overflow: 'hidden',
-                minHeight: '70vh'
+                flex: 1, // Take remaining height
+                width: '80%',
+                maxHeight: 'calc(100vh - 180px)',
+                marginBottom: '1rem'
             }}>
                 {/* Sidebar: Lista de prompts */}
                 <aside style={{
                     borderRight: '1px solid var(--border)',
                     display: 'flex',
                     flexDirection: 'column',
-                    background: 'rgba(255, 255, 255, 0.01)'
+                    background: 'rgba(255, 255, 255, 0.01)',
+                    overflow: 'hidden'
                 }}>
-                    <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
-                        <h3 style={{ fontSize: '1rem', color: 'var(--text-main)', display: 'flex', justifyContent: 'space-between' }}>
-                            Guardados <span>{prompts.length}</span>
+                    <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+                        <h3 style={{ fontSize: '0.9rem', color: 'var(--text-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            Guardados <span style={{ background: 'var(--accent)', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem' }}>{prompts.length}</span>
                         </h3>
                     </div>
 
-                    <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
-                        {loading && <p className="text-dim" style={{ textAlign: 'center', padding: '2rem' }}>Cargando historial...</p>}
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }} className="custom-scroll">
+                        {loading && <p className="text-dim" style={{ textAlign: 'center', padding: '2rem' }}>Cargando...</p>}
 
                         {error && (
                             <div style={{
@@ -119,32 +121,32 @@ const HistoryPage = () => {
                         {!loading && !error && prompts.length === 0 && (
                             <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
                                 <FileText size={40} style={{ marginBottom: '1rem', opacity: 0.1 }} />
-                                <p className="text-dim" style={{ fontSize: '0.9rem' }}>No hay prompts para esta ubicación.</p>
+                                <p className="text-dim" style={{ fontSize: '0.85rem' }}>Sin historial.</p>
                             </div>
                         )}
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                             {prompts.map((prompt) => (
                                 <div
                                     key={prompt.id}
                                     onClick={() => setSelectedPrompt(prompt)}
                                     style={{
-                                        padding: '1.25rem',
-                                        background: selectedPrompt?.id === prompt.id ? 'rgba(142, 36, 170, 0.15)' : 'transparent',
+                                        padding: '1rem',
+                                        background: selectedPrompt?.id === prompt.id ? 'rgba(142, 36, 170, 0.12)' : 'transparent',
                                         border: `1px solid ${selectedPrompt?.id === prompt.id ? 'var(--accent)' : 'transparent'}`,
-                                        borderRadius: '10px',
+                                        borderRadius: '8px',
                                         cursor: 'pointer',
-                                        transition: 'all 0.2s ease',
+                                        transition: 'all 0.15s ease',
                                         position: 'relative'
                                     }}
                                     className="history-item"
                                 >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
-                                        <div style={{ flex: 1, pr: '1.5rem' }}>
-                                            <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-main)', marginBottom: '0.2rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                                        <div style={{ flex: 1, pr: '1.5rem', overflow: 'hidden' }}>
+                                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                 {prompt.assistant_role}
                                             </div>
-                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.1rem' }}>
                                                 {prompt.agency_name}
                                             </div>
                                         </div>
@@ -158,19 +160,18 @@ const HistoryPage = () => {
                                                 border: 'none',
                                                 color: 'var(--danger)',
                                                 cursor: 'pointer',
-                                                padding: '0.4rem',
+                                                padding: '0.3rem',
                                                 borderRadius: '6px',
-                                                opacity: 0.5,
-                                                transition: 'opacity 0.2s'
+                                                opacity: 0.4,
+                                                flexShrink: 0
                                             }}
-                                            onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
-                                            onMouseOut={(e) => e.currentTarget.style.opacity = '0.5'}
+                                            className="delete-btn"
                                         >
-                                            <Trash2 size={16} />
+                                            <Trash2 size={14} />
                                         </button>
                                     </div>
-                                    <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                        <Calendar size={12} />
+                                    <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.6rem' }}>
+                                        <Calendar size={11} />
                                         {new Date(prompt.created_at).toLocaleDateString('es-MX', {
                                             day: 'numeric',
                                             month: 'short',
@@ -185,100 +186,112 @@ const HistoryPage = () => {
                 </aside>
 
                 {/* Main: Detalle del prompt seleccionado */}
-                <section style={{ padding: '2.5rem', background: 'rgba(0,0,0,0.1)', overflowY: 'auto', maxHeight: '80vh' }}>
+                <section style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    background: 'rgba(0,0,0,0.15)',
+                    overflow: 'hidden'
+                }}>
                     {selectedPrompt ? (
-                        <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
+                        <>
+                            {/* Sticky Header inside the column */}
                             <div style={{
+                                padding: '1.5rem 2.5rem',
+                                borderBottom: '1px solid var(--border)',
+                                background: 'rgba(30, 27, 46, 0.95)', // Matches secondary-bg
+                                backdropFilter: 'blur(10px)',
+                                zIndex: 10,
                                 display: 'flex',
                                 justifyContent: 'space-between',
-                                alignItems: 'flex-start',
-                                marginBottom: '2.5rem',
-                                borderBottom: '1px solid var(--border)',
-                                paddingBottom: '1.5rem'
+                                alignItems: 'center',
+                                flexShrink: 0
                             }}>
                                 <div>
-                                    <h2 style={{ color: 'var(--text-main)', fontSize: '1.75rem', marginBottom: '0.5rem' }}>{selectedPrompt.assistant_role}</h2>
-                                    <p style={{ color: 'var(--accent)', fontWeight: 500 }}>{selectedPrompt.agency_name}</p>
+                                    <h2 style={{ color: 'var(--text-main)', fontSize: '1.4rem', marginBottom: '0.2rem' }}>{selectedPrompt.assistant_role}</h2>
+                                    <p style={{ color: 'var(--accent)', fontWeight: 500, fontSize: '0.9rem' }}>{selectedPrompt.agency_name}</p>
                                 </div>
-                                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                <div style={{ display: 'flex', gap: '0.6rem' }}>
                                     <button
                                         className="button secondary"
                                         onClick={() => downloadPrompt(selectedPrompt)}
-                                        style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}
+                                        style={{ padding: '0.5rem 0.8rem', fontSize: '0.8rem', border: '1px solid var(--border)', background: 'transparent' }}
                                     >
-                                        <Download size={16} /> .txt
+                                        <Download size={14} /> .txt
                                     </button>
                                     <button
                                         className="button"
                                         onClick={() => copyToClipboard(selectedPrompt.generated_prompt)}
-                                        style={{ padding: '0.6rem 1.25rem', fontSize: '0.85rem' }}
+                                        style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                                     >
-                                        {copySuccess ? <CheckCircle2 size={16} /> : <Copy size={16} />}
+                                        {copySuccess ? <CheckCircle2 size={14} /> : <Copy size={14} />}
                                         {copySuccess ? 'Copiado' : 'Copiar Prompt'}
                                     </button>
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2.5rem' }}>
-                                {selectedPrompt.parameters?.tasks && selectedPrompt.parameters.tasks.length > 0 && (
-                                    <div>
-                                        <h3 style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>Tareas</h3>
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                            {selectedPrompt.parameters.tasks.map((task, i) => (
-                                                <span key={i} style={{
-                                                    background: 'rgba(255, 255, 255, 0.05)',
-                                                    border: '1px solid var(--border)',
-                                                    padding: '0.3rem 0.8rem',
-                                                    borderRadius: '6px',
-                                                    fontSize: '0.85rem',
-                                                    color: 'var(--text-main)'
-                                                }}>
-                                                    {task}
-                                                </span>
-                                            ))}
+                            {/* Scrollable Content inside the column */}
+                            <div style={{ flex: 1, overflowY: 'auto', padding: '2rem 2.5rem' }} className="custom-scroll">
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2.5rem' }}>
+                                    {selectedPrompt.parameters?.tasks && selectedPrompt.parameters.tasks.length > 0 && (
+                                        <div>
+                                            <h3 style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.8rem' }}>Tareas</h3>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                                {selectedPrompt.parameters.tasks.map((task, i) => (
+                                                    <span key={i} style={{
+                                                        background: 'rgba(255, 255, 255, 0.04)',
+                                                        border: '1px solid var(--border)',
+                                                        padding: '0.25rem 0.6rem',
+                                                        borderRadius: '4px',
+                                                        fontSize: '0.8rem',
+                                                        color: 'rgba(255,255,255,0.8)'
+                                                    }}>
+                                                        {task}
+                                                    </span>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                {selectedPrompt.parameters?.few_shot && selectedPrompt.parameters.few_shot.length > 0 && (
-                                    <div>
-                                        <h3 style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>Ejemplos</h3>
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                            {selectedPrompt.parameters.few_shot.map((ex, i) => (
-                                                <span key={i} style={{
-                                                    background: 'rgba(142, 36, 170, 0.05)',
-                                                    border: '1px solid rgba(142, 36, 170, 0.2)',
-                                                    padding: '0.3rem 0.8rem',
-                                                    borderRadius: '6px',
-                                                    fontSize: '0.85rem',
-                                                    color: 'rgba(255,255,255,0.8)'
-                                                }}>
-                                                    {ex}
-                                                </span>
-                                            ))}
+                                    {selectedPrompt.parameters?.few_shot && selectedPrompt.parameters.few_shot.length > 0 && (
+                                        <div>
+                                            <h3 style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.8rem' }}>Ejemplos</h3>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                                {selectedPrompt.parameters.few_shot.map((ex, i) => (
+                                                    <span key={i} style={{
+                                                        background: 'rgba(142, 36, 170, 0.05)',
+                                                        border: '1px solid rgba(142, 36, 170, 0.15)',
+                                                        padding: '0.25rem 0.6rem',
+                                                        borderRadius: '4px',
+                                                        fontSize: '0.8rem',
+                                                        color: 'rgba(255,255,255,0.7)'
+                                                    }}>
+                                                        {ex}
+                                                    </span>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
+                                    )}
+                                </div>
 
-                            <div>
-                                <h3 style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>Prompt Maestro</h3>
-                                <div style={{
-                                    background: 'rgba(0, 0, 0, 0.4)',
-                                    padding: '2rem',
-                                    borderRadius: '12px',
-                                    border: '1px solid var(--border)',
-                                    whiteSpace: 'pre-wrap',
-                                    fontSize: '1rem',
-                                    fontFamily: '"JetBrains Mono", monospace',
-                                    lineHeight: '1.7',
-                                    color: '#e0e0e0',
-                                    boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.2)'
-                                }}>
-                                    {selectedPrompt.generated_prompt}
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <h3 style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>Prompt Maestro</h3>
+                                    <div style={{
+                                        background: 'rgba(0, 0, 0, 0.35)',
+                                        padding: '1.75rem',
+                                        borderRadius: '10px',
+                                        border: '1px solid var(--border)',
+                                        whiteSpace: 'pre-wrap',
+                                        fontSize: '0.95rem',
+                                        fontFamily: '"JetBrains Mono", monospace',
+                                        lineHeight: '1.6',
+                                        color: '#d1d1d1',
+                                        boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.15)'
+                                    }}>
+                                        {selectedPrompt.generated_prompt}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        </>
                     ) : (
                         <div style={{
                             height: '100%',
@@ -287,29 +300,17 @@ const HistoryPage = () => {
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: 'var(--text-dim)',
-                            opacity: 0.5
+                            opacity: 0.4
                         }}>
-                            <div style={{
-                                width: '80px',
-                                height: '80px',
-                                borderRadius: '50%',
-                                background: 'rgba(255,255,255,0.03)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                marginBottom: '1.5rem'
-                            }}>
-                                <FileText size={40} />
-                            </div>
-                            <p style={{ fontSize: '1.1rem' }}>Selecciona un prompt para visualizar los detalles</p>
-                            <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>Los prompts generados se guardan automáticamente por ubicación.</p>
+                            <FileText size={50} style={{ marginBottom: '1rem' }} />
+                            <p style={{ fontSize: '1rem' }}>Selecciona un prompt para visualizar los detalles</p>
                         </div>
                     )}
                 </section>
             </main>
 
-            <footer style={{ marginTop: '4rem', padding: '2rem', borderTop: '1px solid var(--border)', width: '100%', textAlign: 'center' }}>
-                <p className="text-dim" style={{ fontSize: '0.875rem' }}>
+            <footer style={{ padding: '0.8rem', flexShrink: 0, textAlign: 'center', opacity: 0.6 }}>
+                <p style={{ fontSize: '0.75rem' }}>
                     &copy; 2026 Prompt Builder Agent. Infragrowth AI
                 </p>
             </footer>
@@ -317,12 +318,20 @@ const HistoryPage = () => {
             <style dangerouslySetInnerHTML={{
                 __html: `
                 .history-item:hover {
-                    background: rgba(255,255,255,0.05) !important;
-                    transform: translateX(4px);
+                    background: rgba(255,255,255,0.04) !important;
                 }
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
+                .history-item:hover .delete-btn {
+                    opacity: 1 !important;
+                }
+                .custom-scroll::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .custom-scroll::-webkit-scrollbar-thumb {
+                    background: var(--border);
+                    border-radius: 3px;
+                }
+                .custom-scroll::-webkit-scrollbar-thumb:hover {
+                    background: var(--accent);
                 }
             `}} />
         </div>
