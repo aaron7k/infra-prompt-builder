@@ -25,8 +25,13 @@ def generate_prompt_node(state: State, config: RunnableConfig) -> dict:
         tool_logic=state.get("tool_logic", "Sin lógica de herramientas")
     )
     
+    from utils.langfuse_client import get_langfuse_prompt
+    
+    # Intentar obtener el prompt de Langfuse, fallback al local
+    system_prompt = get_langfuse_prompt("prompt-builder", PROMPT_BUILDER_SYSTEM_PROMPT)
+    
     messages = [
-        SystemMessage(content=PROMPT_BUILDER_SYSTEM_PROMPT),
+        SystemMessage(content=system_prompt),
         HumanMessage(content=user_content)
     ]
     
