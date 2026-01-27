@@ -46,8 +46,11 @@ body {
   box-shadow: var(--shadow-md);
   backdrop-filter: blur(8px);
   padding: 2rem;
-  width: 90%;
-  max-width: 1200px;
+  width: 80%;
+  /* 80% of viewport width */
+  max-width: 1400px;
+  /* Limits size on ultra-wide screens */
+  min-width: 320px;
 }
 
 .button {
@@ -78,6 +81,26 @@ body {
 .button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.button.secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+}
+
+.button.secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.button.danger {
+  background: rgba(255, 77, 77, 0.1);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+
+.button.danger:hover {
+  background: var(--danger);
+  color: white;
 }
 
 .input-group {
@@ -182,40 +205,27 @@ h1 {
   color: var(--danger);
 }
 
-.toggle-group .toggle-btn {
-  transition: var(--transition);
-  opacity: 0.7;
-}
-
-.toggle-group .toggle-btn.active {
-  opacity: 1;
-  box-shadow: var(--shadow-sm);
-}
-
-.toggle-group .toggle-btn:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.05) !important;
-  opacity: 0.9;
-}
-
 @media (max-width: 768px) {
+  .card {
+    width: 95%;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }
 }
-/* Modal Styles */
+
+/* Modal Styles - ROOT SCOPE */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
-  padding: 2rem;
+  z-index: 10000;
+  padding: 1.5rem;
   animation: fadeIn 0.2s ease-out;
 }
 
@@ -224,17 +234,17 @@ h1 {
   border: 1px solid var(--border);
   border-radius: 16px;
   width: 95%;
-  max-width: 1000px;
-  max-height: 90vh;
+  max-width: 1100px;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
 }
 
 .modal-header {
-  padding: 1.5rem;
+  padding: 1.5rem 2rem;
   border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
@@ -243,13 +253,13 @@ h1 {
 }
 
 .modal-body {
-  padding: 2rem;
+  padding: 2.5rem;
   overflow-y: auto;
   flex: 1;
 }
 
 .modal-footer {
-  padding: 1.25rem 1.5rem;
+  padding: 1.5rem 2rem;
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: flex-end;
@@ -276,25 +286,37 @@ h1 {
 }
 
 .prompt-output-container {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 1.5rem;
-  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 2rem;
+  border-radius: 10px;
   border: 1px solid var(--border);
   white-space: pre-wrap;
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  line-height: 1.6;
-  color: #e0e0e0;
-  max-height: 50vh;
+  line-height: 1.7;
+  color: #e5e5e5;
+  max-height: 45vh;
   overflow-y: auto;
 }
 
 @keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }

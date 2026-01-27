@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Plus, X, Upload, FileText, AlertCircle, CheckCircle2, Copy, Download, XCircle } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Send, Plus, X, Upload, FileText, AlertCircle, CheckCircle2, Copy, Download, XCircle, Trash2 } from 'lucide-react';
 import axios from 'axios';
 
 const PromptForm = ({ locationId }) => {
-  // Initialize state directly from localStorage
   const [formData, setFormData] = useState(() => {
     const saved = localStorage.getItem('promptBuilder_formData');
     return saved ? JSON.parse(saved) : {
@@ -31,15 +31,11 @@ const PromptForm = ({ locationId }) => {
   const [showModal, setShowModal] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Cross-tab synchronization
+  // Sync state between tabs
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === 'promptBuilder_formData' && e.newValue) {
-        try {
-          setFormData(JSON.parse(e.newValue));
-        } catch (err) {
-          console.error("Storage parse error", err);
-        }
+        setFormData(JSON.parse(e.newValue));
       }
       if (e.key === 'promptBuilder_generatedPrompt' && e.newValue) {
         setGeneratedPrompt(e.newValue === 'undefined' ? '' : e.newValue);
@@ -49,7 +45,7 @@ const PromptForm = ({ locationId }) => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // persistence
+  // Save to localStorage
   useEffect(() => {
     localStorage.setItem('promptBuilder_formData', JSON.stringify(formData));
   }, [formData]);
@@ -92,6 +88,23 @@ const PromptForm = ({ locationId }) => {
     }));
   };
 
+  const handleClearAll = () => {
+    if (window.confirm('¿Estás seguro de que quieres borrar todos los campos? Esta acción no se puede deshacer.')) {
+      setFormData({
+        assistantRole: '',
+        agencyName: '',
+        tasks: [],
+        context: '',
+        fewShot: [],
+        formatRestrictions: '',
+        toolLogic: ''
+      });
+      setGeneratedPrompt('');
+      localStorage.removeItem('promptBuilder_formData');
+      localStorage.removeItem('promptBuilder_generatedPrompt');
+    }
+  };
+
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -132,11 +145,10 @@ const PromptForm = ({ locationId }) => {
 
       const response = await axios.post('/api/generate-prompt', formDataToSend);
 
-      // Defensively extract prompt with multiple checks to avoid "undefined"
-      const result = response.data.generated_prompt || response.data.prompt || (response.data.messages ? response.data.messages[0] : '');
+      const result = response.data.generated_prompt || response.data.prompt || '';
 
       if (!result) {
-        throw new Error("El AI no devolvió contenido. Intenta de nuevo.");
+        throw new Error("El backend no devolvió contenido para el prompt.");
       }
 
       setGeneratedPrompt(result);
@@ -158,7 +170,7 @@ const PromptForm = ({ locationId }) => {
             generated_prompt: result
           });
         } catch (dbErr) {
-          console.warn("DB Save error", dbErr);
+          console.warn("DB Save Error:", dbErr);
         }
       }
 
@@ -186,8 +198,60 @@ const PromptForm = ({ locationId }) => {
     element.click();
   };
 
+  // Rendering the Modal via Portal for body-level overlay
+  const renderModal = () => {
+    if (!showModal) return null;
+
+    return createPortal(
+      <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2 style={{ color: 'var(--accent)', margin: 0, fontSize: '1.5rem', fontWeight: 'bold' }}>
+              🚀 Prompt Maestro Generado
+            </h2>
+            <button className="modal-close" onClick={() => setShowModal(false)}>
+              <XCircle size={28} />
+            </button>
+          </div>
+
+          <div className="modal-body">
+            <div className="prompt-output-container">
+              {generatedPrompt}
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button
+              className="button secondary"
+              onClick={downloadPrompt}
+            >
+              <Download size={18} /> Descargar .txt
+            </button>
+            <button className="button" onClick={copyToClipboard}>
+              {success ? <CheckCircle2 size={18} /> : <Copy size={18} />}
+              {success ? '¡Copiado!' : 'Copiar al Portapapeles'}
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  };
+
   return (
     <div className="card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h3 className="text-dim">Configuración del Agente</h3>
+        <button
+          type="button"
+          className="button danger"
+          onClick={handleClearAll}
+          style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }}
+        >
+          <Trash2 size={14} /> Borrar Todo
+        </button>
+      </div>
+
       <form onSubmit={handleSubmit}>
         <div className="form-grid">
           <div className="input-group">
@@ -366,7 +430,7 @@ const PromptForm = ({ locationId }) => {
           )}
         </div>
 
-        <button type="submit" className="button" style={{ width: '100%', marginTop: '1.5rem', padding: '1rem' }} disabled={loading}>
+        <button type="submit" className="button" style={{ width: '100%', marginTop: '1rem', padding: '1rem' }} disabled={loading}>
           {loading ? 'Generando...' : (
             <>
               <Send size={20} />
@@ -383,48 +447,26 @@ const PromptForm = ({ locationId }) => {
         </div>
       )}
 
-      {/* MODAL OVERLAY - FIXED Z-INDEX */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 style={{ color: 'var(--accent)', margin: 0, fontSize: '1.25rem' }}>🚀 Prompt Maestro Generado</h2>
-              <button className="modal-close" onClick={() => setShowModal(false)}>
-                <XCircle size={24} />
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <div className="prompt-output-container">
-                {generatedPrompt}
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button className="button" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', fontSize: '0.85rem' }} onClick={downloadPrompt}>
-                <Download size={16} /> Descargar .txt
-              </button>
-              <button className="button" onClick={copyToClipboard} style={{ fontSize: '0.85rem' }}>
-                {success ? <CheckCircle2 size={16} /> : <Copy size={16} />}
-                {success ? '¡Copiado!' : 'Copiar al Portapapeles'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* VIEW AGAIN BUTTON */}
+      {/* Button to reopen modal if hidden */}
       {generatedPrompt && !showModal && (
         <div style={{ marginTop: '2rem', textAlign: 'center' }}>
           <button
             className="button"
             onClick={() => setShowModal(true)}
-            style={{ background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: '0.75rem' }}
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--accent)',
+              color: 'var(--accent)',
+              fontSize: '0.8rem'
+            }}
           >
-            Ver Último Prompt
+            Ver Último Prompt Generado
           </button>
         </div>
       )}
+
+      {/* Modal is rendered via Portal below */}
+      {renderModal()}
     </div>
   );
 };
