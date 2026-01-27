@@ -81,7 +81,8 @@ const PromptForm = ({ locationId }) => {
     setSuccess(false);
 
     try {
-      const response = await axios.post('http://localhost:8000/generate-prompt', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8888';
+      const response = await axios.post(`${apiUrl}/generate-prompt`, {
         assistant_role: formData.assistantRole,
         agency_name: formData.agencyName,
         tasks: formData.tasks,
@@ -95,7 +96,7 @@ const PromptForm = ({ locationId }) => {
       setGeneratedPrompt(result);
 
       if (locationId) {
-        await axios.post('http://localhost:8000/prompts', {
+        await axios.post(`${apiUrl}/prompts`, {
           location_id: locationId,
           assistant_role: formData.assistantRole,
           agency_name: formData.agencyName,
