@@ -81,15 +81,20 @@ const PromptForm = ({ locationId }) => {
     setSuccess(false);
 
     try {
-      const response = await axios.post('/api/generate-prompt', {
-        assistant_role: formData.assistantRole,
-        agency_name: formData.agencyName,
-        tasks: formData.tasks,
-        context: formData.context,
-        few_shot: formData.fewShot,
-        format_restrictions: formData.formatRestrictions,
-        tool_logic: formData.toolLogic
-      });
+      // Backend expects FormData, not JSON
+      const formDataToSend = new FormData();
+      formDataToSend.append('assistant_role', formData.assistantRole);
+      formDataToSend.append('agency_name', formData.agencyName);
+      formDataToSend.append('tasks', formData.tasks.join(','));
+      formDataToSend.append('context', formData.context);
+      formDataToSend.append('few_shot', formData.fewShot.join(','));
+      formDataToSend.append('format_restrictions', formData.formatRestrictions);
+      formDataToSend.append('location_id', locationId || 'default');
+      if (formData.toolLogic) {
+        formDataToSend.append('tool_logic', formData.toolLogic);
+      }
+
+      const response = await axios.post('/api/generate-prompt', formDataToSend);
 
       const result = response.data.prompt;
       setGeneratedPrompt(result);
