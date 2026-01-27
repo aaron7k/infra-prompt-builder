@@ -38,6 +38,10 @@ langfuse_handler = CallbackHandler(
     public_key=os.getenv("LANGFUSE_PUBLIC_KEY")
 )
 
+@app.get("/")
+async def root():
+    return {"status": "ok", "message": "Prompt Builder API is running"}
+
 @app.post("/generate-prompt")
 async def generate_prompt(
     assistant_role: str = Form(...),
