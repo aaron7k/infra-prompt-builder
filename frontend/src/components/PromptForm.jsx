@@ -21,6 +21,33 @@ const PromptForm = ({ locationId }) => {
   const [contextMode, setContextMode] = useState('text'); // 'text' or 'file'
   const fileInputRef = useRef(null);
 
+  // Load from localStorage on mount
+  useEffect(() => {
+    const savedData = localStorage.getItem('promptBuilder_formData');
+    const savedPrompt = localStorage.getItem('promptBuilder_generatedPrompt');
+
+    if (savedData) {
+      try {
+        setFormData(JSON.parse(savedData));
+      } catch (e) {
+        console.error("Failed to parse saved form data", e);
+      }
+    }
+
+    if (savedPrompt) {
+      setGeneratedPrompt(savedPrompt);
+    }
+  }, []);
+
+  // Save to localStorage on change
+  useEffect(() => {
+    localStorage.setItem('promptBuilder_formData', JSON.stringify(formData));
+  }, [formData]);
+
+  useEffect(() => {
+    localStorage.setItem('promptBuilder_generatedPrompt', generatedPrompt);
+  }, [generatedPrompt]);
+
   const handleAddTask = () => {
     if (currentTask.trim()) {
       setFormData(prev => ({
@@ -177,20 +204,13 @@ const PromptForm = ({ locationId }) => {
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div className="tag-list">
               {formData.tasks.map((task, index) => (
-                <span key={index} style={{
-                  background: 'rgba(142, 36, 170, 0.1)',
-                  border: '1px solid var(--accent)',
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '20px',
-                  fontSize: '0.875rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}>
+                <span key={index} className="tag">
                   {task}
-                  <X size={14} style={{ cursor: 'pointer' }} onClick={() => removeTask(index)} />
+                  <span className="tag-remove" onClick={() => removeTask(index)}>
+                    <X size={14} />
+                  </span>
                 </span>
               ))}
             </div>
@@ -212,20 +232,13 @@ const PromptForm = ({ locationId }) => {
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div className="tag-list">
               {formData.fewShot.map((example, index) => (
-                <span key={index} style={{
-                  background: 'rgba(142, 36, 170, 0.1)',
-                  border: '1px solid var(--accent)',
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '20px',
-                  fontSize: '0.875rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}>
+                <span key={index} className="tag">
                   {example}
-                  <X size={14} style={{ cursor: 'pointer' }} onClick={() => removeFewShot(index)} />
+                  <span className="tag-remove" onClick={() => removeFewShot(index)}>
+                    <X size={14} />
+                  </span>
                 </span>
               ))}
             </div>

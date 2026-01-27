@@ -139,9 +139,47 @@ h1 {
 
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  min-height: 2rem;
+}
+
+.tag {
+  background: rgba(142, 36, 170, 0.15);
+  border: 1px solid var(--accent);
+  color: var(--text-main);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--transition);
+}
+
+.tag:hover {
+  background: rgba(142, 36, 170, 0.25);
+}
+
+.tag-remove {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+}
+
+.tag-remove:hover {
+  opacity: 1;
+  color: var(--danger);
 }
 
 .toggle-group .toggle-btn {

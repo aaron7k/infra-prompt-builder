@@ -1,5 +1,6 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.runnables import RunnableConfig
 from agents.prompt_builder.state import State
 from agents.prompt_builder.nodes.prompt_generation.prompt import (
     PROMPT_BUILDER_SYSTEM_PROMPT,
@@ -10,7 +11,7 @@ from agents.prompt_builder.nodes.prompt_generation.prompt import (
 # Usaremos gpt-4o-mini por defecto.
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
 
-def generate_prompt_node(state: State) -> dict:
+def generate_prompt_node(state: State, config: RunnableConfig) -> dict:
     """
     Nodo que genera el prompt del asistente.
     """
@@ -29,7 +30,8 @@ def generate_prompt_node(state: State) -> dict:
         HumanMessage(content=user_content)
     ]
     
-    response = llm.invoke(messages)
+    # Pasamos el config para que se incluyan los callbacks (Langfuse)
+    response = llm.invoke(messages, config=config)
     
     return {
         "generated_prompt": response.content,
