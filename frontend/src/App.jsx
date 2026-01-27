@@ -20,6 +20,7 @@ function Navigation() {
     display: 'flex',
     gap: '1rem',
     marginBottom: '2rem',
+    marginTop: '2rem', // Added margin top to replace global padding
     justifyContent: 'center'
   };
 
@@ -79,7 +80,7 @@ function FormPage() {
         <p className="text-dim">Diseña prompts expertos para tus asistentes de LangChain en segundos.</p>
       </header>
 
-      <main className="w-full">
+      <main className="w-full" style={{ paddingBottom: '4rem' }}>
         <PromptForm locationId={locationId} />
       </main>
 
@@ -92,16 +93,25 @@ function FormPage() {
   );
 }
 
+const AppContent = () => {
+  const location = useLocation();
+  const isHistory = location.pathname === '/history';
+
+  return (
+    <div className={`app-container ${isHistory ? 'viewport-lock' : ''}`}>
+      <Navigation />
+      <Routes>
+        <Route path="/" element={<FormPage />} />
+        <Route path="/history" element={<HistoryPage />} />
+      </Routes>
+    </div>
+  );
+};
+
 function App() {
   return (
     <Router>
-      <div className="app-container">
-        <Navigation />
-        <Routes>
-          <Route path="/" element={<FormPage />} />
-          <Route path="/history" element={<HistoryPage />} />
-        </Routes>
-      </div>
+      <AppContent />
     </Router>
   );
 }

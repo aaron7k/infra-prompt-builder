@@ -54,9 +54,13 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2rem 0;
   width: 100%;
   min-height: 100vh;
+}
+
+.viewport-lock {
+  height: 100vh;
+  overflow: hidden;
 }
 
 .card {

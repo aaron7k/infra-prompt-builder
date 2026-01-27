@@ -102,15 +102,14 @@ const HistoryPage = () => {
 
     return (
         <div style={{
-            height: 'calc(100vh - 120px)',
+            flex: 1,
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
             width: '100%',
-            maxWidth: '100%'
+            maxWidth: '100%',
+            paddingBottom: '2rem'
         }}>
-            {/* Header removed as requested, keeping just enough space or simple navigation if needed */}
-            <div style={{ height: '20px' }}></div>
 
             <main className="card" style={{
                 display: 'grid',
@@ -121,8 +120,8 @@ const HistoryPage = () => {
                 overflow: 'hidden',
                 flex: 1,
                 width: '80%',
-                maxHeight: 'calc(100vh - 60px)',
-                marginBottom: '1rem',
+                maxHeight: '100%',
+                marginBottom: '0',
                 border: '1px solid var(--border)'
             }}>
                 {/* Sidebar: Lista de prompts */}
