@@ -6,12 +6,12 @@ langgraph==0.2.64
 pydantic==2.12.5
 python-multipart==0.0.22
 supabase==2.27.2
-langfuse==3.12.1
+langfuse==3.11.3
 python-dotenv==1.0.1
 # Force rebuild Tue Jan 27 11:05:16 CST 2026
-# BuildID: 1769533611
+# BuildID: 1769533666
  
-# ForcedRebuildId 1769533616
+# ForcedRebuildId 1769533666
 
 # ForcedRebuildId 1769533623
 
