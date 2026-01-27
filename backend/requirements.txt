@@ -2,7 +2,7 @@ fastapi==0.115.12
 uvicorn==0.34.0
 langchain==0.3.17
 langchain-openai==0.3.4
-langgraph==1.0.7
+langgraph==0.2.64
 pydantic==2.12.5
 python-multipart==0.0.22
 supabase==2.27.2
