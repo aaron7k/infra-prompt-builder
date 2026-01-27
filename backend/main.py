@@ -57,8 +57,17 @@ langfuse_handler = CallbackHandler(
 )
 
 @app.get("/")
+@app.get("/")
 async def root():
-    return {"status": "ok", "message": "Prompt Builder API is running"}
+    return {
+        "status": "ok", 
+        "message": "Prompt Builder API is running",
+        "env_check": {
+            "SUPABASE_URL": "Set" if os.getenv("SUPABASE_URL") else "Missing",
+            "SUPABASE_KEY": "Set" if os.getenv("SUPABASE_KEY") else "Missing",
+             "OPENAI_API_KEY": "Set" if os.getenv("OPENAI_API_KEY") else "Missing"
+        }
+    }
 
 @app.post("/generate-prompt")
 async def generate_prompt(
