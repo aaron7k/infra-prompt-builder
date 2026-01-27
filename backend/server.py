@@ -72,7 +72,7 @@ async def root():
         }
     }
 
-@app.post("/generate-prompt")
+@app.post("/api/generate-prompt")
 async def generate_prompt(
     assistant_role: str = Form(...),
     agency_name: str = Form(...),
@@ -132,7 +132,7 @@ async def generate_prompt(
         print(f"Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/prompts/{location_id}")
+@app.get("/api/prompts/{location_id}")
 async def get_prompts(location_id: str):
     try:
         response = supabase.table("prompts").select("*").eq("location_id", location_id).order("created_at", desc=True).execute()
@@ -140,7 +140,7 @@ async def get_prompts(location_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.delete("/prompts/{prompt_id}")
+@app.delete("/api/prompts/{prompt_id}")
 async def delete_prompt(prompt_id: str):
     try:
         supabase.table("prompts").delete().eq("id", prompt_id).execute()
@@ -148,7 +148,7 @@ async def delete_prompt(prompt_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/upload-context")
+@app.post("/api/upload-context")
 async def upload_context(file: UploadFile = File(...)):
     try:
         content = await file.read()
