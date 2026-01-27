@@ -92,10 +92,13 @@ async def get_api_key(api_key: str = Security(api_key_header)):
     return api_key
 
 @app.get("/")
+@app.get("/api")
+@app.get("/api/")
+@app.get("/api/health")
 async def root():
     return {
         "status": "ok", 
-        "message": "Prompt Builder API is running",
+        "message": "Prompt Builder API is running - Version 4.0",
         "env_check": {
             "SUPABASE_URL": "Set" if os.getenv("SUPABASE_URL") else "Missing",
             "SUPABASE_KEY": "Set" if os.getenv("SUPABASE_KEY") else "Missing",
