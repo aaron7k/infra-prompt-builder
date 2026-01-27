@@ -29,9 +29,27 @@ app.add_middleware(
 )
 
 # Inicializar Supabase
+# Inicializar Supabase
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
-supabase: Client = create_client(supabase_url, supabase_key)
+
+if not supabase_url:
+    print("CRITICAL ERROR: SUPABASE_URL is missing from environment variables")
+if not supabase_key:
+    print("CRITICAL ERROR: SUPABASE_KEY is missing from environment variables")
+    
+if not supabase_url or not supabase_key:
+    # Fallback dummy client to prevent crash during healthcheck if envs are missing
+    # This allows us to see the logs instead of a crash loop
+    print("WARNING: Initializing with dummy values to keep container alive for debugging")
+    supabase_url = "https://example.supabase.co" 
+    supabase_key = "dummy_key"
+
+try:
+    supabase: Client = create_client(supabase_url, supabase_key)
+except Exception as e:
+    print(f"Error initializing Supabase client: {e}")
+    supabase = None
 
 # Inicializar Langfuse
 langfuse_handler = CallbackHandler(
