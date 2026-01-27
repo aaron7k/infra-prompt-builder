@@ -194,6 +194,7 @@ const PromptForm = ({ locationId }) => {
 
   const copyToClipboard = () => {
     const text = generatedPrompt;
+    console.log("Copying to clipboard, length:", text?.length);
     if (!text) return;
 
     if (navigator.clipboard && window.isSecureContext) {
@@ -253,7 +254,7 @@ const PromptForm = ({ locationId }) => {
           </div>
 
           <div className="modal-body custom-scroll" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-            <div className="prompt-output-container" style={{ padding: '2rem' }}>
+            <div className="prompt-output-container markdown-body" style={{ padding: '2rem' }}>
               <ReactMarkdown>{generatedPrompt}</ReactMarkdown>
             </div>
           </div>
