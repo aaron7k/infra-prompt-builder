@@ -113,57 +113,95 @@ async def root():
 
 @app.get("/api/test-trace")
 async def test_trace():
+    import traceback
+    import httpx
     print("DEBUG: Starting test-trace diagnostic...")
+    
+    # 1. Verificar variables
     pk = os.getenv("LANGFUSE_PUBLIC_KEY")
     sk = os.getenv("LANGFUSE_SECRET_KEY")
     host = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
     
-    if not pk or not sk:
-        return {"status": "error", "message": "Langfuse keys missing in environment"}
+    diag = {
+        "env": {
+            "host": host,
+            "pk_len": len(pk) if pk else 0,
+            "sk_len": len(sk) if sk else 0,
+            "pk_prefix": pk[:10] if pk else None
+        },
+        "steps": []
+    }
 
+    if not pk or not sk:
+        return {"status": "error", "message": "Missing keys", "diag": diag}
+
+    # 2. Test de Red (Rechazabilidad)
     try:
-        print(f"DEBUG: Attempting Langfuse connection to {host}...")
-        # Usar el cliente base para el check, es más directo
-        lf_client = Langfuse(
-            public_key=pk,
-            secret_key=sk,
-            host=host,
-            # Forzar un timeout corto para que no cuelgue el servidor y de 502
-            timeout=10 
-        )
-        
-        print("DEBUG: Calling auth_check()...")
-        auth_ok = lf_client.auth_check()
-        
-        if auth_ok:
-            print("DEBUG: Auth check successful, sending test event...")
-            # En v3.11.2, es mejor crear un trace y luego un event para asegurar compatibilidad
-            test_trace = lf_client.trace(name="Diagnostic Test")
-            test_trace.event(name="test-connection", metadata={"source": "api-diagnostic"})
-            lf_client.flush()
-            return {
-                "status": "success",
-                "message": "Langfuse connection verified and test event sent.",
-                "host": host,
-                "auth_check": auth_ok
-            }
-        else:
-            print("DEBUG: Auth check failed (invalid keys or host)")
-            return {
-                "status": "error",
-                "message": "Auth check failed. Verify your keys and host URL.",
-                "host": host
-            }
-            
+        print(f"DEBUG: Pinging host {host}...")
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(host)
+            diag["steps"].append({"step": "network_reachability", "status": "ok", "code": resp.status_code})
     except Exception as e:
-        print(f"DEBUG: Trace test CRASHED: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        diag["steps"].append({"step": "network_reachability", "status": "failed", "error": str(e)})
+
+    # 3. Inicializar Cliente
+    try:
+        print("DEBUG: Initializing Langfuse client...")
+        # Limpiar cualquier espacio en blanco accidental en las llaves
+        pk = pk.strip()
+        sk = sk.strip()
+        host = host.strip()
+        
+        lf = Langfuse(public_key=pk, secret_key=sk, host=host, timeout=10)
+        diag["steps"].append({"step": "client_init", "status": "ok"})
+        
+        # 4. Auth Check
+        print("DEBUG: Calling auth_check()...")
+        auth_ok = lf.auth_check()
+        diag["steps"].append({"step": "auth_check", "status": "ok", "result": auth_ok})
+        
+        if not auth_ok:
+            return {"status": "error", "message": "Auth check failed - check your keys", "diag": diag}
+            
+        # 5. Send Event (Modern v3 style)
+        print("DEBUG: Sending event...")
+        # Intentamos los dos métodos conocidos por si acaso
+        try:
+            lf.event(name="test-v3-style", metadata={"source": "api"})
+            diag["steps"].append({"step": "send_event_v3", "status": "ok"})
+        except AttributeError:
+            lf.create_event(name="test-v2-style", metadata={"source": "api"})
+            diag["steps"].append({"step": "send_event_v2", "status": "ok"})
+            
+        # 6. Flush
+        print("DEBUG: Flushing...")
+        lf.flush()
+        diag["steps"].append({"step": "flush", "status": "ok"})
+        
+        return {"status": "success", "message": "Langfuse connection verified!", "diag": diag}
+
+    except Exception as e:
+        print(f"DEBUG: Diagnostic failed: {e}")
         return {
-            "status": "error",
-            "message": f"Exception during diagnostic: {str(e)}",
-            "type": type(e).__name__
+            "status": "error", 
+            "message": str(e), 
+            "type": type(e).__name__,
+            "diag": diag,
+            "traceback": traceback.format_exc()
         }
+
+@app.get("/api/debug-env")
+async def debug_env():
+    # Helper para que el usuario verifique sus llaves sin exponerlas todas
+    pk = os.getenv("LANGFUSE_PUBLIC_KEY", "")
+    sk = os.getenv("LANGFUSE_SECRET_KEY", "")
+    return {
+        "LANGFUSE_HOST": os.getenv("LANGFUSE_HOST"),
+        "PK": f"{pk[:10]}... (len: {len(pk)})",
+        "SK": f"{sk[:10]}... (len: {len(sk)})",
+        "VITE_API_KEY": f"{os.getenv('VITE_API_KEY', '')[:5]}...",
+        "SUPABASE_URL": os.getenv("SUPABASE_URL")
+    }
 
 @app.post("/api/generate-prompt")
 async def generate_prompt(

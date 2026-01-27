@@ -8,10 +8,11 @@ python-multipart==0.0.22
 supabase==2.27.2
 langfuse==3.11.2
 python-dotenv==1.0.1
-# Force rebuild Tue Jan 27 11:05:16 CST 2026
-# BuildID: 1769533777
+httpx==0.28.1
+# Force rebuild Tue Jan 27 16:24:00 CST 2026
+# BuildID: 1769533888
  
-# ForcedRebuildId 1769533777
+# ForcedRebuildId 1769533888
 
 # ForcedRebuildId 1769533623
 
