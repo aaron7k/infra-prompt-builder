@@ -5,7 +5,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: prompt-builder-backend
     ports:
       - "8000:8000"
     environment:
@@ -15,8 +14,6 @@ services:
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}
       - LANGFUSE_HOST=${LANGFUSE_HOST:-https://cloud.langfuse.com}
-    env_file:
-      - ./backend/.env
     restart: unless-stopped
     networks:
       - prompt-builder-network
@@ -25,25 +22,23 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: prompt-builder-frontend
     ports:
       - "80:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - prompt-builder-network
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=http://backend:8000
 
 networks:
   prompt-builder-network:
     driver: bridge
-
-volumes:
-  backend-data:
