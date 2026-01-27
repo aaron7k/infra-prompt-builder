@@ -100,7 +100,10 @@ async def root():
             "SUPABASE_URL": "Set" if os.getenv("SUPABASE_URL") else "Missing",
             "SUPABASE_KEY": "Set" if os.getenv("SUPABASE_KEY") else "Missing",
             "OPENAI_API_KEY": "Set" if os.getenv("OPENAI_API_KEY") else "Missing",
-            "VITE_API_KEY": "Set" if os.getenv("VITE_API_KEY") else "Missing"
+            "VITE_API_KEY": "Set" if os.getenv("VITE_API_KEY") else "Missing",
+            "LANGFUSE_PUBLIC_KEY": "Set" if os.getenv("LANGFUSE_PUBLIC_KEY") else "Missing",
+            "LANGFUSE_SECRET_KEY": "Set" if os.getenv("LANGFUSE_SECRET_KEY") else "Missing",
+            "LANGFUSE_HOST": os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
         }
     }
 
@@ -157,6 +160,13 @@ async def generate_prompt(
         
         supabase.table("prompts").insert(db_data).execute()
         
+        # Asegurar que las trazas se envíen
+        if langfuse_handler:
+            try:
+                langfuse_handler.flush()
+            except:
+                pass
+                
         return {
             "status": "success",
             "generated_prompt": generated_prompt,
