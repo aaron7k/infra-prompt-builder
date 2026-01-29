@@ -22,7 +22,8 @@ def generate_prompt_node(state: State, config: RunnableConfig) -> dict:
         context=state.get("context", "Sin contexto adicional"),
         few_shot=", ".join(state.get("few_shot", [])),
         format_restrictions=state.get("format_restrictions", "Sin restricciones"),
-        tool_logic=state.get("tool_logic", "Sin lógica de herramientas")
+        tool_logic=state.get("tool_logic", "Sin lógica de herramientas"),
+        additional_instructions=state.get("additional_instructions", "Sin instrucciones adicionales")
     )
     
     from utils.langfuse_client import get_langfuse_prompt

@@ -25,5 +25,6 @@ PROMPT_BUILDER_USER_TEMPLATE = """\
 - **Contexto**: {context}
 - **Ejemplos Few-Shot**: {few_shot}
 - **Restricciones de Formato**: {format_restrictions}
-- **Lógica de Herramientas**: {tool_logic}.
+- **Lógica de Herramientas**: {tool_logic}
+- **Instrucciones Adicionales**: {additional_instructions}.
 """

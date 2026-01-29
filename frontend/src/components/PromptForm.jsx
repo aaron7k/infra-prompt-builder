@@ -16,7 +16,8 @@ const PromptForm = ({ locationId }) => {
       context: '',
       fewShot: [],
       formatRestrictions: '',
-      toolLogic: ''
+      toolLogic: [],
+      additionalInstructions: ''
     };
   });
 
@@ -105,7 +106,8 @@ const PromptForm = ({ locationId }) => {
       context: '',
       fewShot: [],
       formatRestrictions: '',
-      toolLogic: ''
+      toolLogic: [],
+      additionalInstructions: ''
     });
     setGeneratedPrompt('');
     localStorage.removeItem('promptBuilder_formData');
@@ -148,8 +150,13 @@ const PromptForm = ({ locationId }) => {
       formDataToSend.append('few_shot', formData.fewShot.join(','));
       formDataToSend.append('format_restrictions', formData.formatRestrictions);
       formDataToSend.append('location_id', locationId || 'default');
-      if (formData.toolLogic) {
-        formDataToSend.append('tool_logic', formData.toolLogic);
+      formDataToSend.append('additional_instructions', formData.additionalInstructions);
+
+      // Serializar herramientas si existen
+      if (formData.toolLogic && formData.toolLogic.length > 0) {
+        formDataToSend.append('tool_logic', JSON.stringify(formData.toolLogic));
+      } else {
+        formDataToSend.append('tool_logic', '');
       }
 
       const response = await api.post('/api/generate-prompt', formDataToSend);
@@ -235,6 +242,109 @@ const PromptForm = ({ locationId }) => {
     document.body.appendChild(element);
     element.click();
     setToast({ message: 'Descargado correctamente', type: 'success' });
+  };
+
+  // Modal para añadir/editar herramientas
+  const [showToolModal, setShowToolModal] = useState(false);
+  const [currentTool, setCurrentTool] = useState({ name: '', description: '', inputs: '' });
+  const [editingToolIndex, setEditingToolIndex] = useState(null);
+
+  const handleAddTool = () => {
+    if (currentTool.name.trim() && currentTool.description.trim()) {
+      setFormData(prev => {
+        const newTools = [...prev.toolLogic];
+        if (editingToolIndex !== null) {
+          newTools[editingToolIndex] = currentTool;
+        } else {
+          newTools.push(currentTool);
+        }
+        return { ...prev, toolLogic: newTools };
+      });
+      setCurrentTool({ name: '', description: '', inputs: '' });
+      setEditingToolIndex(null);
+      setShowToolModal(false);
+    }
+  };
+
+  const removeTool = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      toolLogic: prev.toolLogic.filter((_, i) => i !== index)
+    }));
+  };
+
+  const openEditTool = (tool, index) => {
+    setCurrentTool(tool);
+    setEditingToolIndex(index);
+    setShowToolModal(true);
+  };
+
+  const renderToolModal = () => {
+    if (!showToolModal) return null;
+
+    return createPortal(
+      <div className="modal-overlay" onClick={() => setShowToolModal(false)}>
+        <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+          <div className="modal-header">
+            <h3 style={{ color: 'var(--accent)', margin: 0 }}>
+              {editingToolIndex !== null ? 'Editar Herramienta' : 'Añadir Nueva Herramienta'}
+            </h3>
+            <button className="modal-close" onClick={() => setShowToolModal(false)}>
+              <XCircle size={24} />
+            </button>
+          </div>
+
+          <div className="modal-body">
+            <div className="input-group">
+              <label className="label">Nombre de la Herramienta</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Ej: get_property_details"
+                value={currentTool.name}
+                onChange={e => setCurrentTool({ ...currentTool, name: e.target.value })}
+              />
+            </div>
+            <div className="input-group">
+              <label className="label">¿Qué hace la herramienta?</label>
+              <textarea
+                className="textarea"
+                placeholder="Ej: Obtiene los detalles completos de una propiedad usando su ID..."
+                value={currentTool.description}
+                onChange={e => setCurrentTool({ ...currentTool, description: e.target.value })}
+                style={{ minHeight: '80px' }}
+              />
+            </div>
+            <div className="input-group">
+              <label className="label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                Inputs (Argumentos)
+                <div className="tooltip-container">
+                  <AlertCircle size={14} className="text-dim" />
+                  <span className="tooltip-text">
+                    Especifica qué parámetros necesita la IA para ejecutar esta herramienta (ej: property_id, user_email).
+                  </span>
+                </div>
+              </label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Ej: property_id, filter_type..."
+                value={currentTool.inputs}
+                onChange={e => setCurrentTool({ ...currentTool, inputs: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button className="button secondary" onClick={() => setShowToolModal(false)}>Cancelar</button>
+            <button className="button" onClick={handleAddTool}>
+              {editingToolIndex !== null ? 'Guardar Cambios' : 'Añadir Herramienta'}
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
   };
 
   // Rendering the Modal via Portal for body-level overlay
@@ -388,14 +498,52 @@ const PromptForm = ({ locationId }) => {
           </div>
 
           <div className="input-group">
-            <label className="label">Lógica de Herramientas</label>
-            <textarea
-              className="textarea"
-              placeholder="Ej: Consultar base de datos de propiedades, enviar emails..."
-              value={formData.toolLogic}
-              onChange={(e) => setFormData({ ...formData, toolLogic: e.target.value })}
-            />
+            <label className="label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              Lógica de Herramientas
+              <button
+                type="button"
+                className="button"
+                onClick={() => {
+                  setCurrentTool({ name: '', description: '', inputs: '' });
+                  setEditingToolIndex(null);
+                  setShowToolModal(true);
+                }}
+                style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem' }}
+              >
+                <Plus size={12} /> Añadir Tool
+              </button>
+            </label>
+            <div className="tag-list" style={{ minHeight: '100px', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.5rem', background: 'rgba(0,0,0,0.1)' }}>
+              {formData.toolLogic && formData.toolLogic.length > 0 ? (
+                formData.toolLogic.map((tool, index) => (
+                  <div key={index} className="tag" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '0.6rem', gap: '0.2rem', maxWidth: 'none', cursor: 'pointer' }} onClick={() => openEditTool(tool, index)}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                      <strong style={{ color: 'var(--accent)' }}>{tool.name}</strong>
+                      <span className="tag-remove" onClick={(e) => { e.stopPropagation(); removeTool(index); }}>
+                        <X size={14} />
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>{tool.description.substring(0, 60)}...</span>
+                  </div>
+                ))
+              ) : (
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-dim)', fontSize: '0.8rem' }}>
+                  No hay herramientas configuradas
+                </div>
+              )}
+            </div>
           </div>
+        </div>
+
+        <div className="input-group">
+          <label className="label">Instrucciones Adicionales (Consideraciones extra para la IA)</label>
+          <textarea
+            className="textarea"
+            placeholder="Ej: Prioriza siempre la empatía, evita mencionar a la competencia, usa un tono jovial..."
+            value={formData.additionalInstructions}
+            onChange={(e) => setFormData({ ...formData, additionalInstructions: e.target.value })}
+            style={{ minHeight: '80px' }}
+          />
         </div>
 
         <div className="input-group">
@@ -506,6 +654,7 @@ const PromptForm = ({ locationId }) => {
 
       {/* Modal is rendered via Portal below */}
       {renderModal()}
+      {renderToolModal()}
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <ConfirmDialog

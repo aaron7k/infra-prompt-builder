@@ -210,9 +210,25 @@ async def generate_prompt(
     format_restrictions: str = Form(...),
     location_id: str = Form(...),
     tool_logic: Optional[str] = Form(None),
+    additional_instructions: Optional[str] = Form(None),
     api_key: str = Depends(get_api_key)
 ):
     try:
+        # Si tool_logic viene como JSON (de la UI nueva), intentamos formatearlo para la IA
+        formatted_tool_logic = tool_logic
+        if tool_logic:
+            try:
+                import json
+                tools_data = json.loads(tool_logic)
+                if isinstance(tools_data, list):
+                    formatted_tool_logic = "\n".join([
+                        f"- **{t.get('name')}**: {t.get('description')} (Inputs: {t.get('inputs')})"
+                        for t in tools_data
+                    ])
+            except:
+                # Si no es JSON, lo dejamos como texto plano (retrocompatibilidad)
+                pass
+
         # Preparar el estado inicial
         initial_state: State = {
             "assistant_role": assistant_role,
@@ -221,7 +237,8 @@ async def generate_prompt(
             "context": context,
             "few_shot": [f.strip() for f in few_shot.split(",") if f.strip()],
             "format_restrictions": format_restrictions,
-            "tool_logic": tool_logic,
+            "tool_logic": formatted_tool_logic,
+            "additional_instructions": additional_instructions,
             "generated_prompt": "",
             "messages": []
         }
@@ -289,7 +306,8 @@ async def generate_prompt(
                 "context": context,
                 "few_shot": initial_state["few_shot"],
                 "format_restrictions": format_restrictions,
-                "tool_logic": tool_logic
+                "tool_logic": tool_logic, # Guardamos el original (posible JSON)
+                "additional_instructions": additional_instructions
             },
             "generated_prompt": generated_prompt
         }

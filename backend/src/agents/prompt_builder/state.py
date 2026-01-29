@@ -12,5 +12,6 @@ class State(TypedDict):
     few_shot: List[str]
     format_restrictions: str
     tool_logic: Optional[str]
+    additional_instructions: Optional[str]
     generated_prompt: str
     messages: List[BaseMessage]
