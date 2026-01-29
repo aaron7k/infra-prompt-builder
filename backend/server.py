@@ -348,4 +348,4 @@ async def upload_context(file: UploadFile = File(...), api_key: str = Depends(ge
         raise HTTPException(status_code=400, detail=f"No se pudo leer el archivo: {str(e)}")
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=5676)
+    uvicorn.run(app, host="0.0.0.0", port=8888)
