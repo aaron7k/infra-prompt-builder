@@ -9,7 +9,7 @@ import ConfirmDialog from './ConfirmDialog';
 const PromptForm = ({ locationId }) => {
   const [formData, setFormData] = useState(() => {
     const saved = localStorage.getItem('promptBuilder_formData');
-    return saved ? JSON.parse(saved) : {
+    const defaultData = {
       assistantRole: '',
       agencyName: '',
       tasks: [],
@@ -19,6 +19,23 @@ const PromptForm = ({ locationId }) => {
       toolLogic: [],
       additionalInstructions: ''
     };
+
+    if (!saved) return defaultData;
+
+    try {
+      const parsed = JSON.parse(saved);
+      // Ensure arrays are actually arrays
+      return {
+        ...defaultData,
+        ...parsed,
+        tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
+        fewShot: Array.isArray(parsed.fewShot) ? parsed.fewShot : [],
+        toolLogic: Array.isArray(parsed.toolLogic) ? parsed.toolLogic : []
+      };
+    } catch (e) {
+      console.error("Error parsing saved form data:", e);
+      return defaultData;
+    }
   });
 
   const [generatedPrompt, setGeneratedPrompt] = useState(() => {
@@ -41,7 +58,18 @@ const PromptForm = ({ locationId }) => {
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === 'promptBuilder_formData' && e.newValue) {
-        setFormData(JSON.parse(e.newValue));
+        try {
+          const parsed = JSON.parse(e.newValue);
+          setFormData(prev => ({
+            ...prev,
+            ...parsed,
+            tasks: Array.isArray(parsed.tasks) ? parsed.tasks : (prev.tasks || []),
+            fewShot: Array.isArray(parsed.fewShot) ? parsed.fewShot : (prev.fewShot || []),
+            toolLogic: Array.isArray(parsed.toolLogic) ? parsed.toolLogic : (prev.toolLogic || [])
+          }));
+        } catch (err) {
+          console.error("Error parsing storage change:", err);
+        }
       }
       if (e.key === 'promptBuilder_generatedPrompt' && e.newValue) {
         setGeneratedPrompt(e.newValue === 'undefined' ? '' : e.newValue);
@@ -446,7 +474,7 @@ const PromptForm = ({ locationId }) => {
             </div>
 
             <div className="tag-list">
-              {formData.tasks.map((task, index) => (
+              {Array.isArray(formData.tasks) && formData.tasks.map((task, index) => (
                 <span key={index} className="tag">
                   {task}
                   <span className="tag-remove" onClick={() => removeTask(index)}>
@@ -474,7 +502,7 @@ const PromptForm = ({ locationId }) => {
             </div>
 
             <div className="tag-list">
-              {formData.fewShot.map((example, index) => (
+              {Array.isArray(formData.fewShot) && formData.fewShot.map((example, index) => (
                 <span key={index} className="tag">
                   {example}
                   <span className="tag-remove" onClick={() => removeFewShot(index)}>
@@ -514,7 +542,7 @@ const PromptForm = ({ locationId }) => {
               </button>
             </label>
             <div className="tag-list" style={{ minHeight: '100px', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.5rem', background: 'rgba(0,0,0,0.1)' }}>
-              {formData.toolLogic && formData.toolLogic.length > 0 ? (
+              {Array.isArray(formData.toolLogic) && formData.toolLogic.length > 0 ? (
                 formData.toolLogic.map((tool, index) => (
                   <div key={index} className="tag" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '0.6rem', gap: '0.2rem', maxWidth: 'none', cursor: 'pointer' }} onClick={() => openEditTool(tool, index)}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
@@ -523,7 +551,7 @@ const PromptForm = ({ locationId }) => {
                         <X size={14} />
                       </span>
                     </div>
-                    <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>{tool.description.substring(0, 60)}...</span>
+                    <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>{tool.description ? tool.description.substring(0, 60) : ''}...</span>
                   </div>
                 ))
               ) : (
